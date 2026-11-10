@@ -1,6 +1,6 @@
 // Modo sin internet: guarda la app y la sirve desde el teléfono. Cambiar VERSION en cada cambio publicado.
-const VERSION = 'rutina-v1';
-const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
+const VERSION = 'rutina-v2';
+const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'js/agregar.js', 'js/calendario.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));

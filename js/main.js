@@ -5,6 +5,8 @@ import {
   partOf, expandClasses, layoutLanes, blocksFor, DIAS, DIAS_LARGO, MESES,
 } from './logic.js';
 import { APP, COLORES, newId, load, save, exportJSON, importJSON, seedDemo, persistente } from './store.js';
+import { parseAgregar } from './agregar.js';
+import { CAL_COLOR, urlEventos, calDia, rangoCal, haceCuanto, calDemo } from './calendario.js';
 
 const DEMO = typeof window !== 'undefined' && !!window.RUTINA_DEMO;
 if (DEMO) APP.storageKey = 'rutina.demo';
@@ -12,6 +14,50 @@ if (DEMO) APP.storageKey = 'rutina.demo';
 let S = load();
 if (DEMO && !hasStored()) S = seedDemo(dateKey());
 function hasStored() { try { return !!localStorage.getItem(APP.storageKey); } catch { return false; } }
+
+// ---------- Calendario del iPhone (solo lectura, vía el worker) ----------
+// Copia aparte de los datos (no va en la copia de seguridad): { at, eventos, error, errorAt }
+const CAL_KEY = 'rutina.calendario';
+let cal = { at: 0, eventos: [], error: null, errorAt: 0 };
+try { const c = JSON.parse(localStorage.getItem(CAL_KEY)); if (c && Array.isArray(c.eventos)) cal = { ...cal, ...c }; } catch { /* sin copia */ }
+if (DEMO) cal = { at: Date.now(), eventos: calDemo(dateKey()), error: null, errorAt: 0 };
+const calOn = () => DEMO || !!(S.settings.cal && S.settings.cal.url);
+let calBusy = false;
+
+async function calSync({ avisar = false, forzar = false } = {}) {
+  if (DEMO) { if (avisar) toast('En la demo los eventos del calendario son de ejemplo'); return; }
+  if (!calOn() || calBusy) return;
+  if (!forzar && Date.now() - Math.max(cal.at, cal.errorAt) < 2 * 60000) return;
+  const { desde, hasta } = rangoCal(today());
+  const url = urlEventos(S.settings.cal.url, S.settings.cal.token, desde, hasta);
+  calBusy = true;
+  let msg;
+  try {
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = setTimeout(() => ctl && ctl.abort(), 15000);
+    const r = await fetch(url, { signal: ctl ? ctl.signal : undefined, cache: 'no-store' });
+    clearTimeout(timer);
+    let j = null;
+    try { j = await r.json(); } catch { /* no es JSON */ }
+    if (!r.ok || !j || !Array.isArray(j.eventos)) {
+      throw new Error(r.status === 401 ? 'La clave no coincide con la del servidor'
+        : r.status === 403 ? 'El servidor no acepta esta página (revisá ORIGEN)'
+        : r.status === 502 ? 'El servidor no pudo leer el calendario de iCloud'
+        : (j && j.error) || `El servidor respondió ${r.status}`);
+    }
+    cal = { at: Date.now(), eventos: j.eventos, error: null, errorAt: 0 };
+    const n = j.eventos.length;
+    msg = `Conectado: ${n} ${n === 1 ? 'evento' : 'eventos'} en los próximos dos meses`;
+  } catch (err) {
+    const red = err && (err.name === 'AbortError' || err.name === 'TypeError');
+    cal = { ...cal, error: red ? 'No se pudo conectar (sin internet o dirección mal escrita)' : err.message, errorAt: Date.now() };
+    msg = cal.error;
+  } finally { calBusy = false; }
+  try { localStorage.setItem(CAL_KEY, JSON.stringify(cal)); } catch { /* sin almacenamiento */ }
+  if (avisar) toast(msg);
+  if (!document.body.classList.contains('open') && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); }
+}
+const typing = () => { const a = document.activeElement; return !!(a && view.contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName)); };
 
 const ui = { tab: 'hoy', day: dateKey(), week: dateKey(), pop: null, ringPrev: 0, scrollNow: true, month: null };
 const today = () => dateKey();
@@ -36,6 +82,7 @@ const I = {
   puntos: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg>',
   cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   tilde: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
 };
 const EMOJIS = ['🧘', '🏋️', '🧠', '🗣️', '🎾', '🏃', '💪', '🥗', '😴', '⏰', '📚', '💧', '🚴', '🏊', '🧴', '📖', '✍️', '🙏', '🍎', '📵', '🧹', '💰', '🎯', '📞'];
 const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], ['any', 'Cuando puedas']];
@@ -147,7 +194,9 @@ function renderHoy() {
   const sub = p.total === 0 ? 'Disfrutá el descanso.' : falta === 0 ? 'Mañana seguimos.' : 'Un toque y listo.';
   const nx = nextItem(k);
   const m = nowMinutes();
-  const nextHTML = nx ? `<div class="next"><i style="background:${nx.color}"></i><span>${nx.start <= m ? 'Ahora' : fromMin(nx.start)} · ${esc(nx.label)}</span></div>` : '';
+  const todoDia = calOn() ? calDia(cal.eventos, k).allDay : [];
+  const nextHTML = (nx ? `<div class="next${nx.kind === 'cal' ? ' cal' : ''}"><i style="background:${nx.color}"></i><span>${nx.start <= m ? 'Ahora' : fromMin(nx.start)} · ${esc(nx.label)}</span></div>` : '')
+    + (todoDia.length ? `<div class="next cal"><i style="background:${CAL_COLOR}"></i><span>Todo el día · ${todoDia.map((e) => esc(e.title)).join(' · ')}</span></div>` : '');
 
   let lista = '';
   if (!due.length) lista = `<div class="card empty"><b>Nada por hoy</b>Usá “Otros hábitos” si querés sumar algo extra.</div>`;
@@ -206,6 +255,9 @@ function agendaItems(k) {
     const s = toMin(b.start), e = Math.max(toMin(b.end) || 0, s + 15);
     items.push({ kind: 'bloque', id: b.id, start: s, end: e, color: b.color, label: b.title, weekly: b.weekly });
   }
+  if (calOn()) for (const e of calDia(cal.eventos, k).timed) {
+    items.push({ kind: 'cal', id: e.id, start: e.start, end: e.end, color: CAL_COLOR, label: e.title, cont: e.desde || e.hasta });
+  }
   return items.sort((a, b) => a.start - b.start);
 }
 
@@ -234,12 +286,16 @@ function renderAgenda() {
     const top = y(it.start), hgt = Math.max(24, y(it.end) - top - 2);
     const short = hgt < 42;
     const w = 100 / it.lanes;
-    const cls = ['ev', it.kind === 'clase' ? 'clase' : '', it.kind === 'habito' ? 'habito' : '', it.done ? 'hecho' : '', it.off ? 'off' : '', short ? 'short' : ''].join(' ');
-    const act = it.kind === 'clase' ? 'classMenu' : it.kind === 'habito' ? 'habitMenu' : 'editBlock';
-    const hora = `${fromMin(it.start)}–${fromMin(it.end)}`;
+    const cls = ['ev', it.kind === 'clase' ? 'clase' : '', it.kind === 'habito' ? 'habito' : '', it.kind === 'cal' ? 'cal' : '', it.done ? 'hecho' : '', it.off ? 'off' : '', short ? 'short' : ''].join(' ');
+    const act = ({ clase: 'classMenu', habito: 'habitMenu', cal: 'calEvent' })[it.kind] || 'editBlock';
+    const hora = `${fromMin(it.start)}–${it.end >= 1440 ? '24:00' : fromMin(it.end)}`;
+    const extra = it.weekly && !short ? ' · se repite' : it.kind === 'cal' && !short ? ' · Calendario' : '';
     return `<button class="${cls}" style="--c:${it.color};top:${top}px;height:${hgt}px;left:calc(${it.lane * w}% + 2px);width:calc(${w}% - 6px)" data-act="${act}" data-id="${esc(it.id)}">
-      <b>${esc(it.label)}${it.off ? ' (suspendida)' : ''}</b><span class="num">${short ? fromMin(it.start) : hora}${it.weekly && !short ? ' · se repite' : ''}</span></button>`;
+      <b>${it.kind === 'cal' ? `<i class="ci" aria-hidden="true">${I.cal}</i>` : ''}${esc(it.label)}${it.off ? ' (suspendida)' : ''}</b><span class="num">${short ? fromMin(it.start) : hora}${extra}</span></button>`;
   }).join('');
+  const todoDia = calOn() ? calDia(cal.eventos, k).allDay : [];
+  const calNota = calOn() && !DEMO && cal.error
+    ? `<p class="help cal-err">No se pudo actualizar el calendario${cal.at ? ` (mostramos lo de ${haceCuanto(cal.at)})` : ''}. <button class="linkish" data-act="calRetry">Reintentar</button></p>` : '';
   const nowLine = k === today() && nowMinutes() >= h0 * 60 && nowMinutes() <= h1 * 60 ? `<div class="now" style="top:${y(nowMinutes())}px"></div>` : '';
   const clases = expandClasses(S.classes, k);
   const off = !!S.classOff[k];
@@ -247,6 +303,11 @@ function renderAgenda() {
     <div class="daynav"><button class="icon-btn" data-act="day" data-d="-1" aria-label="Día anterior">${I.izq}</button>
       <button class="lbl" data-act="day" data-d="0">${cap(fechaLarga(k))}<small>${k === today() ? 'Hoy' : 'Volver a hoy'}</small></button>
       <button class="icon-btn" data-act="day" data-d="1" aria-label="Día siguiente">${I.der}</button></div>
+    <form class="quick" id="fQuick" autocomplete="off"><input class="input" id="qText" placeholder="Escribí: gym mañana a las 9" aria-label="Agregar rápido" enterkeyhint="done" maxlength="120" value="${esc(ui.quick || '')}">
+      <button class="btn primary sm" type="submit" aria-label="Agregar">${I.mas}</button></form>
+    <p class="quick-prev" id="qPrev" aria-live="polite">${quickPreview(ui.quick)}</p>
+    ${todoDia.length ? `<div class="allday">${todoDia.map((e) => `<button class="chip cal" data-act="calEvent" data-id="${esc(e.id)}"><i class="ci" aria-hidden="true">${I.cal}</i>${esc(e.title)}</button>`).join('')}</div>` : ''}
+    ${calNota}
     ${S.settings.classesReviewed ? '' : `<div class="notice"><p>Tus clases son <b>de ejemplo</b>. Cargá tus horarios reales una vez y quedan para todas las semanas.</p><button class="btn sm primary" data-act="classes">Cargar</button></div>`}
     <div class="chips">
       ${clases.length ? `<span class="chip"><i style="background:#8FB21C"></i>${clases.length} ${clases.length === 1 ? 'clase' : 'clases'}</span>
@@ -254,7 +315,102 @@ function renderAgenda() {
       <button class="chip" data-act="classes">Mis clases</button>
     </div>
     <div class="timeline"><div class="tl-inner" style="height:${(h1 - h0) * PX}px">${rows}${evs}${nowLine}</div></div>
-    <p class="help">Tocá un horario vacío para agregar un bloque. Los hábitos con hora aparecen punteados.</p>`;
+    <p class="help">Tocá un horario vacío para agregar un bloque. Los hábitos con hora aparecen punteados${calOn() ? ' y lo del Calendario del iPhone, rayado' : ''}.</p>`;
+}
+
+// ---------- Agregar con texto (Siri / campo rápido) ----------
+function cuandoTxt(k) {
+  const d = diffDays(today(), k);
+  if (d === 0) return 'Hoy';
+  if (d === 1) return 'Mañana';
+  if (d > 1 && d < 7) return cap(DIAS_LARGO[weekday(k)]);
+  const [, mm, dd] = k.split('-').map(Number);
+  return `${cap(DIAS_LARGO[weekday(k)])} ${dd}/${mm}`;
+}
+function quickPreview(txt) {
+  if (!txt || !txt.trim()) return '';
+  const p = parseAgregar(txt, today(), nowMinutes());
+  return `→ <b>${esc(p.title)}</b> · ${cuandoTxt(p.date)} · <span class="num">${p.sinHora ? 'sin hora (' + p.start + ')' : p.start + '–' + p.end}</span>`;
+}
+
+function agregarSheet(texto) {
+  const p = parseAgregar(texto, today(), nowMinutes());
+  openSheet(`<h2><span>Agregar a la agenda</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <p class="muted heard">Escuché: “${esc(p.texto)}”</p>
+    <form id="fAgregar">
+      <div class="field"><label for="aTitle">Qué</label><input class="input" id="aTitle" value="${esc(p.title)}" maxlength="50" required enterkeyhint="done"></div>
+      <div class="field"><label for="aDate">Día</label><input class="input" id="aDate" type="date" value="${p.date}" required></div>
+      <div class="two"><div class="field"><label for="aStart">Desde</label><input class="input" id="aStart" type="time" value="${p.start}" required></div>
+        <div class="field"><label for="aEnd">Hasta</label><input class="input" id="aEnd" type="time" value="${p.end}" required></div></div>
+      ${p.sinHora ? '<p class="help" style="margin-top:-6px">No entendí la hora: revisala antes de guardar.</p>' : ''}
+      <div class="field"><span class="lb">Color</span>${swHTML(COLORES[1])}</div>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar en ${esc(cuandoTxt(p.date).toLowerCase())}</button>
+        <button class="btn ghost block" type="button" data-act="closeSheet">Cancelar</button></div>
+    </form>`);
+}
+
+function addBlockFrom(data) {
+  let { title, date, start, end, color } = data;
+  if (!end || toMin(end) <= toMin(start)) end = fromMin(Math.min(23 * 60 + 59, toMin(start) + 60));
+  const b = { id: newId('b'), date, start, end, title, color: color || COLORES[1], weekly: false };
+  S.blocks.push(b);
+  commit();
+  return b;
+}
+
+function saveAgregar(form) {
+  const title = form.querySelector('#aTitle').value.trim();
+  if (!title) { form.querySelector('#aTitle').focus(); return; }
+  const date = form.querySelector('#aDate').value || today();
+  const b = addBlockFrom({ title, date, start: form.querySelector('#aStart').value || '09:00', end: form.querySelector('#aEnd').value, color: pressed('color')[0] });
+  closeSheet();
+  ui.tab = 'agenda'; ui.day = date; ui.scrollNow = true; render();
+  toast(`Agendado: ${b.title} · ${cuandoTxt(date)} ${b.start}`, () => { S.blocks = S.blocks.filter((x) => x !== b); commit(); render(); });
+}
+
+function saveQuick(form) {
+  const txt = form.querySelector('#qText').value.trim();
+  if (!txt) return;
+  const p = parseAgregar(txt, today(), nowMinutes());
+  const b = addBlockFrom(p);
+  ui.quick = ''; ui.day = p.date; ui.scrollNow = true;
+  form.querySelector('#qText').blur();
+  render();
+  toast(`Agendado: ${b.title} · ${cuandoTxt(p.date)} ${b.start}`, () => { S.blocks = S.blocks.filter((x) => x !== b); commit(); ui.quick = txt; render(); });
+}
+
+// Lee ?agregar= o #agregar= una sola vez y limpia la dirección (así recargar no lo duplica).
+function leerAgregar() {
+  let txt = null;
+  try {
+    const u = new URL(location.href);
+    txt = u.searchParams.get('agregar');
+    if (txt == null && /^#agregar=/.test(u.hash)) txt = decodeURIComponent(u.hash.slice(9).replace(/\+/g, ' '));
+    if (txt != null) {
+      u.searchParams.delete('agregar');
+      if (/^#agregar=/.test(u.hash)) u.hash = '';
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    }
+  } catch { /* dirección rara */ }
+  return txt && txt.trim() ? txt.trim().slice(0, 200) : null;
+}
+
+function calEventSheet(id) {
+  const e = (cal.eventos || []).find((x) => x.id === id);
+  if (!e) return;
+  let cuando;
+  if (e.allDay) {
+    const ult = addDays(e.end || addDays(e.start, 1), -1);
+    cuando = ult === e.start ? `${cap(fechaLarga(e.start))} · todo el día` : `Del ${fechaLarga(e.start)} al ${fechaLarga(ult)}`;
+  } else {
+    const s = new Date(e.start), f = new Date(e.end || e.start);
+    const sk = dateKey(s), fk = dateKey(f);
+    cuando = sk === fk ? `${cap(fechaLarga(sk))} · ${fromMin(nowMinutes(s))} a ${fromMin(nowMinutes(f))}` : `${cap(fechaLarga(sk))} ${fromMin(nowMinutes(s))} → ${fechaLarga(fk)} ${fromMin(nowMinutes(f))}`;
+  }
+  openSheet(`<h2><span class="cal-title"><i class="ci" aria-hidden="true">${I.cal}</i>${esc(e.title)}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <p class="muted" style="margin-top:-6px">${esc(cuando)}</p>
+    <div class="notice cal-notice"><p>Viene del <b>Calendario del iPhone</b>. Acá solo se ve: para cambiarlo o borrarlo, usá la app Calendario (o pedíselo a Siri).</p></div>
+    <p class="help">No cuenta como hábito. Si lo cambiás en el iPhone, acá se actualiza solo en unos minutos.</p>`);
 }
 
 // ---------- SEMANA ----------
@@ -323,6 +479,14 @@ function monthSheet(id) {
 }
 
 // ---------- AJUSTES ----------
+function calEstado() {
+  if (DEMO) return 'Demo: eventos de ejemplo';
+  if (!calOn()) return 'Sin configurar';
+  if (calBusy) return 'Actualizando…';
+  const ok = cal.at ? `Actualizado ${haceCuanto(cal.at)} · ${cal.eventos.length} ${cal.eventos.length === 1 ? 'evento' : 'eventos'}` : 'Todavía sin datos';
+  return cal.error && cal.errorAt >= cal.at ? `${esc(cal.error)}${cal.at ? ` · último bien: ${haceCuanto(cal.at)}` : ''}` : ok;
+}
+
 function renderAjustes() {
   const r = S.settings.remind;
   const act = S.habits.filter((h) => !h.archived), arch = S.habits.filter((h) => h.archived);
@@ -343,6 +507,16 @@ function renderAjustes() {
     <div class="section-t">Mis clases</div>
     <div class="set-list">${S.classes.map((c) => `<div class="set-row" style="--c:#8FB21C"><span class="ico">🎾</span><span class="lbl"><b>${esc(c.club)}</b><span>${freqLabel({ type: 'days', days: c.days })} · ${c.from} a ${c.to}</span></span><button class="icon-btn" data-act="editClass" data-id="${c.id}" aria-label="Editar">${I.puntos}</button></div>`).join('') || '<div class="set-row"><span class="lbl muted">Sin clases cargadas</span></div>'}</div>
     <button class="btn block" style="margin-top:8px" data-act="editClass">${I.mas} Agregar horario de clases</button>
+
+    <div class="section-t">Calendario del iPhone</div>
+    <div class="set-list">
+      <div class="set-row stack"><label class="lbl" for="calUrl"><b>Dirección del servidor</b><span>La que te pasa el asistente (termina en workers.dev)</span></label>
+        <input class="input" id="calUrl" data-set="cal.url" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://rutina-calendario….workers.dev" value="${esc(S.settings.cal.url)}" ${DEMO ? 'disabled' : ''}></div>
+      <div class="set-row stack"><label class="lbl" for="calTok"><b>Clave</b><span>La misma que tiene el servidor</span></label>
+        <input class="input" id="calTok" data-set="cal.token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.settings.cal.token)}" ${DEMO ? 'disabled' : ''}></div>
+      <div class="set-row"><span class="lbl"><b>Estado</b><span>${calEstado()}</span></span><button class="btn sm" data-act="calTest" ${calOn() ? '' : 'disabled'}>Probar conexión</button></div>
+    </div>
+    <p class="help">Lo que le pidas a Siri (“agendá gym mañana a las 9”) va al calendario “Rutina” del iPhone y aparece en tu Agenda, rayado. Acá solo se ve: para cambiarlo, usá la app Calendario.</p>
 
     <div class="section-t">Recordatorios</div>
     <div class="set-list">
@@ -666,6 +840,9 @@ const actions = {
   ics: () => { download(`${APP.name.toLowerCase()}-recordatorios.ics`, icsText(), 'text/calendar'); toast('Abrí el archivo para sumarlos al calendario'); },
   export: () => { download(`${APP.name.toLowerCase()}-copia-${today()}.json`, exportJSON(S), 'application/json'); toast('Copia exportada'); },
   resetDemo: () => { S = seedDemo(today()); commit(); ui.tab = 'hoy'; render(); toast('Demo reiniciada'); },
+  calEvent: (el) => calEventSheet(el.dataset.id),
+  calTest: () => { toast('Probando…'); calSync({ avisar: true, forzar: true }); },
+  calRetry: () => calSync({ avisar: true, forzar: true }),
 };
 
 document.addEventListener('click', (e) => {
@@ -688,6 +865,15 @@ document.addEventListener('submit', (e) => {
   if (e.target.id === 'fHabit') saveHabit(e.target);
   if (e.target.id === 'fBlock') saveBlock(e.target);
   if (e.target.id === 'fClass') saveClass(e.target);
+  if (e.target.id === 'fAgregar') saveAgregar(e.target);
+  if (e.target.id === 'fQuick') saveQuick(e.target);
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'qText') return;
+  ui.quick = e.target.value;
+  const p = document.getElementById('qPrev');
+  if (p) p.innerHTML = quickPreview(ui.quick);
 });
 
 document.addEventListener('change', async (e) => {
@@ -699,6 +885,13 @@ document.addEventListener('change', async (e) => {
   if (k === 'remind.morning') r.morning = e.target.value;
   if (k === 'remind.evening') r.evening = e.target.value;
   if (k === 'remind.habits') r.habits = e.target.checked;
+  if (k === 'cal.url' || k === 'cal.token') {
+    S.settings.cal[k.slice(4)] = e.target.value.trim();
+    if (k === 'cal.url' && !S.settings.cal.url) { cal = { at: 0, eventos: [], error: null, errorAt: 0 }; try { localStorage.removeItem(CAL_KEY); } catch { /* */ } }
+    commit(); render();
+    if (calOn()) calSync({ forzar: true });
+    return;
+  }
   if (k === 'remind.on') {
     r.on = e.target.checked;
     if (r.on && typeof Notification !== 'undefined' && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch { /* */ } }
@@ -714,15 +907,22 @@ document.addEventListener('change', async (e) => {
 });
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeSheet(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open')) render(); remindTick(); } });
-setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); } });
+setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
+setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
 
 if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline */ });
 }
 
 // Para pruebas automáticas
-window.__rutina = { get S() { return S; }, ui, render, analyze, today };
+window.__rutina = { get S() { return S; }, get cal() { return cal; }, ui, render, analyze, today };
 
+const pedido = leerAgregar();
+if (pedido) ui.tab = 'agenda';
 render();
 remindTick();
+calSync({ forzar: true });
+if (pedido) agregarSheet(pedido);
+// Si la pestaña ya estaba abierta, el Atajo solo cambia el #: se atiende igual.
+window.addEventListener('hashchange', () => { const t = leerAgregar(); if (t) { ui.tab = 'agenda'; render(); agregarSheet(t); } });

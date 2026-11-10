@@ -42,6 +42,7 @@ export function emptyState(today = dateKey()) {
       name: 'Gabi', theme: 'auto', grouping: true,
       remind: { on: false, morning: '08:00', evening: '21:30', habits: true },
       classesReviewed: false,
+      cal: { url: '', token: '' },
     },
     habits: defaultHabits(today),
     log: {},
@@ -56,7 +57,7 @@ export function migrate(s) {
   if (!s || typeof s !== 'object') return null;
   if (!s.v) s.v = 1;
   const base = emptyState();
-  s.settings = { ...base.settings, ...(s.settings || {}), remind: { ...base.settings.remind, ...((s.settings || {}).remind || {}) } };
+  s.settings = { ...base.settings, ...(s.settings || {}), remind: { ...base.settings.remind, ...((s.settings || {}).remind || {}) }, cal: { ...base.settings.cal, ...((s.settings || {}).cal || {}) } };
   s.habits = Array.isArray(s.habits) ? s.habits : base.habits;
   s.log = s.log && typeof s.log === 'object' ? s.log : {};
   s.blocks = Array.isArray(s.blocks) ? s.blocks : [];

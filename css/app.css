@@ -289,3 +289,33 @@ input[type="time"].input { appearance: none; -webkit-appearance: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Calendario del iPhone y agregar rápido ---------- */
+.ci { display: inline-grid; width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; color: var(--cal); flex: none; }
+.ci svg { width: 100%; height: 100%; }
+:root { --cal: #D93A40; }
+:root[data-theme="dark"] { --cal: #FF7B80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cal: #FF7B80; } }
+.ev.cal { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cal) 15%, var(--surface)) 0 7px, color-mix(in srgb, var(--cal) 8%, var(--surface)) 7px 14px); border-left-color: var(--cal); }
+.ev.cal b { display: flex; align-items: center; min-width: 0; }
+.ev.cal.short b { display: inline-flex; }
+.allday { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip.cal { border-color: color-mix(in srgb, var(--cal) 45%, var(--line)); background: color-mix(in srgb, var(--cal) 10%, var(--surface)); max-width: 100%; }
+.chip.cal .ci { margin-right: 0; }
+.next.cal { background: color-mix(in srgb, var(--cal) 10%, var(--surface-2)); }
+.next.cal i { background: var(--cal) !important; }
+.next + .next { margin-top: 6px; }
+.quick { display: flex; gap: 8px; margin-bottom: 12px; }
+.quick .input { flex: 1; min-width: 0; }
+.quick .btn { min-width: 48px; min-height: 48px; padding: 0; justify-content: center; }
+.quick .btn svg { width: 22px; height: 22px; }
+.quick-prev:empty { display: none; }
+.quick-prev { margin: -4px 4px 12px; font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-prev b { color: var(--text); }
+.cal-err { margin: 0 4px 12px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 700; text-decoration: underline; font-size: inherit; }
+.set-row.stack { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 12px; padding-bottom: 12px; }
+.heard { margin-top: -6px; font-size: 14px; font-style: italic; }
+.cal-title { display: flex; align-items: center; min-width: 0; }
+.cal-title .ci { width: 20px; height: 20px; margin-right: 8px; }
+.cal-notice { background: color-mix(in srgb, var(--cal) 10%, var(--surface)); }

@@ -8,7 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (p) => readFileSync(join(root, p), 'utf8');
 
 const css = leer('css/app.css');
-const js = ['js/logic.js', 'js/store.js', 'js/main.js']
+const js = ['js/logic.js', 'js/agregar.js', 'js/calendario.js', 'js/store.js', 'js/main.js']
   .map((p) => `// ---- ${p} ----\n` + leer(p)
     .replace(/^import[\s\S]*?from\s+'[^']+';[ \t]*\r?\n/gm, '')
     .replace(/^export\s+/gm, ''))

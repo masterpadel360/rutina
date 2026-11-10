@@ -1,0 +1,7 @@
+# Calendario de Rutina. Secretos (no van acá): npx wrangler secret put ICS_URL / TOKEN
+name = "rutina-calendario"
+main = "calendario-worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+ORIGEN = "https://masterpadel360.github.io"
