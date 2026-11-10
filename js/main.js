@@ -87,6 +87,7 @@ const I = {
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
 };
 const EMOJIS = ['🧘', '🏋️', '🧠', '🗣️', '🎾', '🏃', '💪', '🥗', '😴', '⏰', '📚', '💧', '🚴', '🏊', '🧴', '📖', '✍️', '🙏', '🍎', '📵', '🧹', '💰', '🎯', '📞'];
+const TEMAS = [['salvia', 'Salvia'], ['rosa', 'Rosa'], ['arena', 'Arena']];
 const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], ['any', 'Cuando puedas']];
 
 // ---------- Armado ----------
@@ -107,6 +108,9 @@ function applyTheme() {
   const t = S.settings.theme;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
   else document.documentElement.removeAttribute('data-theme');
+  const p = S.settings.palette;
+  if (p && p !== 'salvia') document.documentElement.dataset.palette = p;
+  else document.documentElement.removeAttribute('data-palette');
 }
 
 function render() {
@@ -136,7 +140,7 @@ function renderBienvenida() {
   const o = obEstado();
   const pasos = `<div class="ob-pasos" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i <= o.paso ? 'on' : ''}"></i>`).join('')}</div>`;
   if (o.paso === 0) {
-    return `${pasos}<header class="ob-head"><div class="brand">${esc(APP.name)}</div><h1>Te damos la bienvenida</h1><p class="muted">${esc(APP.tagline)}. Armamos tu rutina en tres pasos.</p></header>
+    return `${pasos}<header class="ob-head ob-intro"><div class="ob-arte" aria-hidden="true"><i></i><i></i><i></i></div><div class="brand">${esc(APP.name)}</div><h1>Te damos la <em>bienvenida</em></h1><p class="muted">${esc(APP.tagline)}. Armamos tu rutina en tres pasos.</p></header>
       <form id="fOb0" class="card" style="margin-top:6px"><div class="field" style="margin:0"><label for="obName">¿Cómo te llamás?</label>
         <input class="input" id="obName" value="${esc(o.name)}" maxlength="20" autocomplete="given-name" placeholder="Tu nombre" enterkeyhint="next"></div></form>
       <div class="actions"><button class="btn primary block" data-act="obNext">Seguir</button></div>
@@ -145,7 +149,7 @@ function renderBienvenida() {
   if (o.paso === 1) {
     const list = [...sugeridos(today()), ...o.propios];
     const n = o.sel.length;
-    return `${pasos}<header class="ob-head"><h1>Elegí tus hábitos</h1><p class="muted">Con 4 a 6 se sostiene mejor. Después podés cambiar todo.</p></header>
+    return `${pasos}<header class="ob-head"><h1>Elegí tus <em>hábitos</em></h1><p class="muted">Con 4 a 6 se sostiene mejor. Después podés cambiar todo.</p></header>
       <div class="sugs">${list.map((h) => `<button class="sug" data-act="obPick" data-id="${esc(h.id)}" aria-pressed="${o.sel.includes(h.id)}" style="--c:${h.color}">
         <span class="ico" aria-hidden="true">${h.icon}</span><span class="lbl"><b>${esc(h.name)}</b><span>${freqLabel(h.freq)}${h.time ? ' · ' + h.time : ''}</span></span><span class="check" aria-hidden="true">${I.tilde}</span></button>`).join('')}</div>
       <form id="fObNuevo" class="quick" style="margin-top:12px" autocomplete="off"><input class="input" id="obNuevo" placeholder="Crear uno propio: ej. Tejer" maxlength="40" value="${esc(o.nuevo)}" enterkeyhint="done">
@@ -153,7 +157,7 @@ function renderBienvenida() {
       <div class="actions ob-sticky"><button class="btn primary block" data-act="obNext" ${n ? '' : 'disabled'}>${n ? `Seguir con ${n} ${n === 1 ? 'hábito' : 'hábitos'}` : 'Elegí al menos uno'}</button>
         <button class="btn ghost block" data-act="obBack">Volver</button></div>`;
   }
-  return `${pasos}<header class="ob-head"><h1>¿Das clases?</h1><p class="muted">Si sos profe o entrenás a alguien, cargás tus horarios una vez y la agenda los arma sola todas las semanas.</p></header>
+  return `${pasos}<header class="ob-head"><h1>¿Das <em>clases</em>?</h1><p class="muted">Si sos profe o entrenás a alguien, cargás tus horarios una vez y la agenda los arma sola todas las semanas.</p></header>
     <div class="set-list"><label class="set-row"><span class="ico" style="--c:#8FB21C">🎾</span><span class="lbl"><b>Mis clases</b><span>${o.clases ? 'Las cargás en el paso siguiente' : 'Apagado: no aparecen en la agenda'}</span></span>
       <span class="switch"><input type="checkbox" id="obClases" ${o.clases ? 'checked' : ''}><i></i></span></label></div>
     <p class="help">Lo podés cambiar cuando quieras en Ajustes.</p>
@@ -176,9 +180,10 @@ function obFin() {
 }
 
 // ---------- HOY ----------
+const INTENCIONES = ['Respirá. Mañana seguimos.', 'Poco, pero todos los días.', 'Un paso a la vez.', 'Lo simple, bien hecho.', 'Hoy también cuenta.', 'Sin apuro y sin pausa.', 'Volver es lo importante.'];
 function saludo() {
   const m = nowMinutes();
-  const n = S.settings.name ? `, ${esc(S.settings.name)}` : '';
+  const n = S.settings.name ? `, <em>${esc(S.settings.name)}</em>` : '';
   if (m < 5 * 60) return `Buenas noches${n}`;
   if (m < 12 * 60 + 30) return `Buen día${n}`;
   if (m < 20 * 60) return `Buenas tardes${n}`;
@@ -217,13 +222,14 @@ function sortHabits(list) {
 
 function ringSVG(done, total) {
   const C = 2 * Math.PI * 44;
+  const grad = '<defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rg-a"/><stop offset="1" class="rg-b"/></linearGradient></defs>';
   const pct = total ? done / total : 0;
   ui.ringTarget = C * (1 - pct);
   const from = ui.ringPrev ?? C;
   return `<div class="ring" role="img" aria-label="${done} de ${total} hábitos hechos">
-    <svg viewBox="0 0 104 104"><circle class="bgc" cx="52" cy="52" r="44" fill="none" stroke-width="10"/>
-    <circle class="fgc" cx="52" cy="52" r="44" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${from}"/></svg>
-    <div class="lbl"><div><b class="num">${done}/${total}</b><span>hoy</span></div></div></div>`;
+    <svg viewBox="0 0 104 104">${grad}<circle class="bgc" cx="52" cy="52" r="44" fill="none" stroke-width="7"/>
+    <circle class="fgc" cx="52" cy="52" r="44" fill="none" stroke="url(#ringGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${from}"/></svg>
+    <div class="lbl"><div><b class="num">${done}<small>/${total}</small></b><span>hoy</span></div></div></div>`;
 }
 function animateRing() {
   const c = view.querySelector('.fgc');
@@ -266,7 +272,7 @@ function renderHoy() {
   const wd = weekday(k);
   const resumen = wd === 0 ? summaryCard(k, 'Cierre de la semana') : wd === 1 ? summaryCard(addDays(k, -7), 'Tu semana pasada') : '';
 
-  return `<header class="head"><div><div class="eyebrow">${cap(fechaLarga(k))}</div><h1>${saludo()}</h1></div><div class="brand">${esc(APP.name)}</div></header>
+  return `<header class="head"><div><div class="eyebrow">${cap(fechaLarga(k))}</div><h1>${saludo()}</h1><p class="intencion">${INTENCIONES[wd]}</p></div><div class="brand">${esc(APP.name)}</div></header>
   <section class="card hero">${ringSVG(p.done, p.total)}<div class="grow"><h2>${titulo}</h2><p>${sub}</p>${nextHTML}</div></section>
   ${resumen}
   ${lista}
@@ -490,7 +496,7 @@ function renderSemana() {
     const u = a.unit === 'sem' ? (a.current === 1 ? 'semana' : 'semanas') : (a.current === 1 ? 'día' : 'días');
     return `<button class="streak" style="--c:${h.color}" data-act="month" data-id="${h.id}"><span class="ico">${h.icon}</span>
       <span class="grow"><b>${esc(h.name)}</b><br><span class="muted tiny">${freqLabel(h.freq)} · mejor: <span class="num">${a.best}</span></span></span>
-      <span class="val"><b class="num">${a.current ? '🔥 ' : ''}${a.current}</b><span>${u}</span></span></button>`;
+      <span class="val"><b class="num">${a.current ? '<i class="fuego" aria-hidden="true">🔥</i>' : ''}${a.current}</b><span>${u}</span></span></button>`;
   }).join('');
   return `<header class="head"><div><div class="eyebrow">Rachas y semana</div><h1>${enCurso ? 'Esta semana' : 'Semana'}</h1></div><div class="brand">${esc(APP.name)}</div></header>
     <div class="daynav weeknav"><button class="icon-btn" data-act="week" data-d="-7" aria-label="Semana anterior">${I.izq}</button>
@@ -602,6 +608,7 @@ function renderAjustes() {
     <div class="set-list">
       <div class="set-row"><span class="lbl"><b>Tu nombre</b></span><input class="input" style="width:150px" data-set="name" value="${esc(S.settings.name)}" maxlength="20" autocomplete="given-name"></div>
       <label class="set-row"><span class="lbl"><b>Agrupar por momento</b><span>Mañana, tarde y noche</span></span><span class="switch"><input type="checkbox" data-set="grouping" ${S.settings.grouping ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row stack"><span class="lbl"><b>Tema</b><span>Los colores de la app</span></span><div class="temas">${TEMAS.map(([v, n]) => `<button class="tema" data-act="palette" data-v="${v}" data-p="${v}" aria-pressed="${(S.settings.palette || 'salvia') === v}"><i aria-hidden="true"></i><span>${n}</span></button>`).join('')}</div></div>
       <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
     </div>
 
@@ -991,6 +998,7 @@ const actions = {
   },
   step: (el) => { const n = sheet.querySelector('#hN'); n.textContent = Math.max(1, Math.min(7, Number(n.textContent) + Number(el.dataset.d))); },
   theme: (el) => { S.settings.theme = el.dataset.v; commit(); render(); },
+  palette: (el) => { S.settings.palette = el.dataset.v; commit(); render(); },
   testNotif: async () => {
     const ej = ejemploAviso(S, today(), nowMinutes() < 15 * 60 ? 'manana' : 'noche');
     if (pushActivo()) {

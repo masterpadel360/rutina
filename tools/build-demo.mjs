@@ -1,4 +1,5 @@
-// Arma demo/rutina-demo.html: un solo archivo con todo adentro (sin service worker ni scripts externos)
+// Arma demo/rutina-demo.html: un solo archivo con todo adentro (sin service worker ni scripts externos;
+// lo único de afuera son las tipografías de Google, y sin internet usa las del sistema)
 // y datos de ejemplo. Uso: node tools/build-demo.mjs
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -24,6 +25,9 @@ const html = `<!doctype html>
 <title>${nombre}</title>
 <meta name="description" content="Demo de ${nombre}: hábitos, agenda del día y rachas con perdón">
 <link rel="icon" href="${icono}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400..800&display=swap">
 <style>
 ${css}
 </style>

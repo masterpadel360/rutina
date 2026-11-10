@@ -1,16 +1,26 @@
 // Modo sin internet: guarda la app y la sirve desde el teléfono. Cambiar VERSION en cada cambio publicado.
-const VERSION = 'rutina-v3';
+const VERSION = 'rutina-v4';
+const FUENTES = 'rutina-fuentes'; // tipografías de Google: se guardan aparte para usarlas sin internet
 const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'js/agregar.js', 'js/calendario.js', 'js/avisos.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION && k !== FUENTES).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 // Primero la red (para recibir cambios), si no hay conexión, lo guardado.
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  if (e.request.method !== 'GET') return;
+  const u = new URL(e.request.url);
+  if (u.hostname === 'fonts.googleapis.com' || u.hostname === 'fonts.gstatic.com') {
+    e.respondWith(caches.open(FUENTES).then((c) => c.match(e.request).then((r) => r || fetch(e.request).then((res) => {
+      if (res.ok || res.type === 'opaque') c.put(e.request, res.clone());
+      return res;
+    }))));
+    return;
+  }
+  if (u.origin !== location.origin) return;
   e.respondWith(
     fetch(e.request).then((r) => {
       const copia = r.clone();
