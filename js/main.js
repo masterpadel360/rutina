@@ -4,7 +4,8 @@ import {
   isScheduled, statusOf, freqLabel, weekCount, weekTarget, dueOn, analyze, cellState, weekStats, dayProgress,
   partOf, expandClasses, layoutLanes, blocksFor, DIAS, DIAS_LARGO, MESES,
 } from './logic.js';
-import { APP, COLORES, newId, load, save, exportJSON, importJSON, seedDemo, persistente } from './store.js';
+import { APP, COLORES, newId, load, save, exportJSON, importJSON, seedDemo, persistente, sugeridos } from './store.js';
+import { TONOS, planAvisos, llenar, avisoHabito, hechosDe, ejemploAviso } from './avisos.js';
 import { parseAgregar } from './agregar.js';
 import { CAL_COLOR, urlEventos, calDia, rangoCal, haceCuanto, calDemo } from './calendario.js';
 
@@ -63,7 +64,8 @@ const ui = { tab: 'hoy', day: dateKey(), week: dateKey(), pop: null, ringPrev: 0
 const today = () => dateKey();
 const habitsActive = () => S.habits.filter((h) => !h.archived);
 const byId = (id) => S.habits.find((h) => h.id === id);
-const commit = () => save(S);
+const commit = () => { save(S); pushLuego(); };
+const clasesOn = () => !!S.settings.classesOn;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -109,6 +111,9 @@ function applyTheme() {
 
 function render() {
   applyTheme();
+  const ob = !S.settings.onboarded;
+  document.body.classList.toggle('ob', ob);
+  if (ob) { view.innerHTML = renderBienvenida(); ui.pop = null; return; }
   document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === ui.tab ? 'page' : 'false'));
   document.querySelector('.fab').hidden = ui.tab !== 'agenda';
   view.innerHTML = ({ hoy: renderHoy, agenda: renderAgenda, semana: renderSemana, ajustes: renderAjustes })[ui.tab]();
@@ -119,6 +124,55 @@ function render() {
     if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 220) });
   }
   ui.pop = null;
+}
+
+// ---------- BIENVENIDA (primera vez en un teléfono nuevo) ----------
+// Cada persona usa su propio teléfono y sus datos. Si ya hay datos guardados, esto no aparece.
+function obEstado() {
+  if (!ui.ob) ui.ob = { paso: 0, name: S.settings.name || '', sel: [], propios: [], nuevo: '', clases: false };
+  return ui.ob;
+}
+function renderBienvenida() {
+  const o = obEstado();
+  const pasos = `<div class="ob-pasos" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i <= o.paso ? 'on' : ''}"></i>`).join('')}</div>`;
+  if (o.paso === 0) {
+    return `${pasos}<header class="ob-head"><div class="brand">${esc(APP.name)}</div><h1>Te damos la bienvenida</h1><p class="muted">${esc(APP.tagline)}. Armamos tu rutina en tres pasos.</p></header>
+      <form id="fOb0" class="card" style="margin-top:6px"><div class="field" style="margin:0"><label for="obName">¿Cómo te llamás?</label>
+        <input class="input" id="obName" value="${esc(o.name)}" maxlength="20" autocomplete="given-name" placeholder="Tu nombre" enterkeyhint="next"></div></form>
+      <div class="actions"><button class="btn primary block" data-act="obNext">Seguir</button></div>
+      <p class="help" style="text-align:center">Tus datos quedan solo en este teléfono.</p>`;
+  }
+  if (o.paso === 1) {
+    const list = [...sugeridos(today()), ...o.propios];
+    const n = o.sel.length;
+    return `${pasos}<header class="ob-head"><h1>Elegí tus hábitos</h1><p class="muted">Con 4 a 6 se sostiene mejor. Después podés cambiar todo.</p></header>
+      <div class="sugs">${list.map((h) => `<button class="sug" data-act="obPick" data-id="${esc(h.id)}" aria-pressed="${o.sel.includes(h.id)}" style="--c:${h.color}">
+        <span class="ico" aria-hidden="true">${h.icon}</span><span class="lbl"><b>${esc(h.name)}</b><span>${freqLabel(h.freq)}${h.time ? ' · ' + h.time : ''}</span></span><span class="check" aria-hidden="true">${I.tilde}</span></button>`).join('')}</div>
+      <form id="fObNuevo" class="quick" style="margin-top:12px" autocomplete="off"><input class="input" id="obNuevo" placeholder="Crear uno propio: ej. Tejer" maxlength="40" value="${esc(o.nuevo)}" enterkeyhint="done">
+        <button class="btn sm" type="submit" aria-label="Agregar hábito propio">${I.mas}</button></form>
+      <div class="actions ob-sticky"><button class="btn primary block" data-act="obNext" ${n ? '' : 'disabled'}>${n ? `Seguir con ${n} ${n === 1 ? 'hábito' : 'hábitos'}` : 'Elegí al menos uno'}</button>
+        <button class="btn ghost block" data-act="obBack">Volver</button></div>`;
+  }
+  return `${pasos}<header class="ob-head"><h1>¿Das clases?</h1><p class="muted">Si sos profe o entrenás a alguien, cargás tus horarios una vez y la agenda los arma sola todas las semanas.</p></header>
+    <div class="set-list"><label class="set-row"><span class="ico" style="--c:#8FB21C">🎾</span><span class="lbl"><b>Mis clases</b><span>${o.clases ? 'Las cargás en el paso siguiente' : 'Apagado: no aparecen en la agenda'}</span></span>
+      <span class="switch"><input type="checkbox" id="obClases" ${o.clases ? 'checked' : ''}><i></i></span></label></div>
+    <p class="help">Lo podés cambiar cuando quieras en Ajustes.</p>
+    <div class="actions"><button class="btn primary block" data-act="obFin">Empezar</button><button class="btn ghost block" data-act="obBack">Volver</button></div>`;
+}
+function obFin() {
+  const o = obEstado();
+  const t = today();
+  const todos = [...sugeridos(t), ...o.propios];
+  S.habits = o.sel.map((id) => todos.find((h) => h.id === id)).filter(Boolean).map((h) => ({ ...h, created: t }));
+  S.settings.name = o.name.trim().slice(0, 20);
+  S.settings.classesOn = o.clases;
+  S.settings.classesReviewed = true;
+  S.settings.onboarded = true;
+  ui.ob = null;
+  commit();
+  ui.tab = 'hoy';
+  render();
+  if (o.clases) { classesSheet(); } else toast('¡Listo! Activá los avisos en Ajustes cuando quieras.');
 }
 
 // ---------- HOY ----------
@@ -243,7 +297,7 @@ function summaryCard(k, titulo) {
 function agendaItems(k) {
   const items = [];
   const off = !!S.classOff[k];
-  for (const c of expandClasses(S.classes, k)) items.push({ ...c, kind: 'clase', color: '#8FB21C', label: c.title, off });
+  if (clasesOn()) for (const c of expandClasses(S.classes, k)) items.push({ ...c, kind: 'clase', color: '#8FB21C', label: c.title, off });
   for (const h of habitsActive()) {
     if (!h.time || !dueOn(h, S.log, k)) continue;
     const st = statusOf(S.log, h.id, k);
@@ -297,7 +351,7 @@ function renderAgenda() {
   const calNota = calOn() && !DEMO && cal.error
     ? `<p class="help cal-err">No se pudo actualizar el calendario${cal.at ? ` (mostramos lo de ${haceCuanto(cal.at)})` : ''}. <button class="linkish" data-act="calRetry">Reintentar</button></p>` : '';
   const nowLine = k === today() && nowMinutes() >= h0 * 60 && nowMinutes() <= h1 * 60 ? `<div class="now" style="top:${y(nowMinutes())}px"></div>` : '';
-  const clases = expandClasses(S.classes, k);
+  const clases = clasesOn() ? expandClasses(S.classes, k) : [];
   const off = !!S.classOff[k];
   return `<header class="head"><div><div class="eyebrow">Agenda del día</div><h1>${diaNombre(k)}</h1></div><div class="brand">${esc(APP.name)}</div></header>
     <div class="daynav"><button class="icon-btn" data-act="day" data-d="-1" aria-label="Día anterior">${I.izq}</button>
@@ -308,12 +362,12 @@ function renderAgenda() {
     <p class="quick-prev" id="qPrev" aria-live="polite">${quickPreview(ui.quick)}</p>
     ${todoDia.length ? `<div class="allday">${todoDia.map((e) => `<button class="chip cal" data-act="calEvent" data-id="${esc(e.id)}"><i class="ci" aria-hidden="true">${I.cal}</i>${esc(e.title)}</button>`).join('')}</div>` : ''}
     ${calNota}
-    ${S.settings.classesReviewed ? '' : `<div class="notice"><p>Tus clases son <b>de ejemplo</b>. Cargá tus horarios reales una vez y quedan para todas las semanas.</p><button class="btn sm primary" data-act="classes">Cargar</button></div>`}
-    <div class="chips">
+    ${!clasesOn() || S.settings.classesReviewed ? '' : `<div class="notice"><p>Tus clases son <b>de ejemplo</b>. Cargá tus horarios reales una vez y quedan para todas las semanas.</p><button class="btn sm primary" data-act="classes">Cargar</button></div>`}
+    ${clasesOn() ? `<div class="chips">
       ${clases.length ? `<span class="chip"><i style="background:#8FB21C"></i>${clases.length} ${clases.length === 1 ? 'clase' : 'clases'}</span>
         <button class="chip ${off ? 'on' : ''}" data-act="toggleOff">${off ? 'Sin clases este día · Reactivar' : 'Suspender clases'}</button>` : '<span class="chip">Sin clases este día</span>'}
       <button class="chip" data-act="classes">Mis clases</button>
-    </div>
+    </div>` : ''}
     <div class="timeline"><div class="tl-inner" style="height:${(h1 - h0) * PX}px">${rows}${evs}${nowLine}</div></div>
     <p class="help">Tocá un horario vacío para agregar un bloque. Los hábitos con hora aparecen punteados${calOn() ? ' y lo del Calendario del iPhone, rayado' : ''}.</p>`;
 }
@@ -505,8 +559,11 @@ function renderAjustes() {
     ${arch.length ? `<div class="section-t">Archivados</div><div class="set-list">${arch.map((h) => `<div class="set-row" style="--c:${h.color}"><span class="ico">${h.icon}</span><span class="lbl"><b>${esc(h.name)}</b></span><button class="btn sm ghost" data-act="unarchive" data-id="${h.id}">Recuperar</button></div>`).join('')}</div>` : ''}
 
     <div class="section-t">Mis clases</div>
-    <div class="set-list">${S.classes.map((c) => `<div class="set-row" style="--c:#8FB21C"><span class="ico">🎾</span><span class="lbl"><b>${esc(c.club)}</b><span>${freqLabel({ type: 'days', days: c.days })} · ${c.from} a ${c.to}</span></span><button class="icon-btn" data-act="editClass" data-id="${c.id}" aria-label="Editar">${I.puntos}</button></div>`).join('') || '<div class="set-row"><span class="lbl muted">Sin clases cargadas</span></div>'}</div>
-    <button class="btn block" style="margin-top:8px" data-act="editClass">${I.mas} Agregar horario de clases</button>
+    <div class="set-list">
+      <label class="set-row"><span class="ico" style="--c:#8FB21C">🎾</span><span class="lbl"><b>Doy clases</b><span>${clasesOn() ? 'Tus horarios aparecen en la agenda' : 'Apagado'}</span></span><span class="switch"><input type="checkbox" data-set="classesOn" ${clasesOn() ? 'checked' : ''}><i></i></span></label>
+      ${clasesOn() ? S.classes.map((c) => `<div class="set-row" style="--c:#8FB21C"><span class="ico">🎾</span><span class="lbl"><b>${esc(c.club)}</b><span>${freqLabel({ type: 'days', days: c.days })} · ${c.from} a ${c.to}</span></span><button class="icon-btn" data-act="editClass" data-id="${c.id}" aria-label="Editar">${I.puntos}</button></div>`).join('') || '<div class="set-row"><span class="lbl muted">Sin clases cargadas</span></div>' : ''}
+    </div>
+    ${clasesOn() ? `<button class="btn block" style="margin-top:8px" data-act="editClass">${I.mas} Agregar horario de clases</button>` : ''}
 
     <div class="section-t">Calendario del iPhone</div>
     <div class="set-list">
@@ -518,15 +575,28 @@ function renderAjustes() {
     </div>
     <p class="help">Lo que le pidas a Siri (“agendá gym mañana a las 9”) va al calendario “Rutina” del iPhone y aparece en tu Agenda, rayado. Acá solo se ve: para cambiarlo, usá la app Calendario.</p>
 
-    <div class="section-t">Recordatorios</div>
+    <div class="section-t">Avisos</div>
     <div class="set-list">
       <label class="set-row"><span class="lbl"><b>Avisos</b><span>${notifTxt}</span></span><span class="switch"><input type="checkbox" data-set="remind.on" ${r.on ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row"><span class="lbl"><b>Con la app cerrada</b><span>${pushEstado()}</span></span>${pushBoton()}</div>
       <div class="set-row"><span class="lbl"><b>Mañana</b><span>Qué toca hoy</span></span><input class="input" style="width:120px" type="time" data-set="remind.morning" value="${r.morning}"></div>
-      <div class="set-row"><span class="lbl"><b>Noche</b><span>Lo que te falta</span></span><input class="input" style="width:120px" type="time" data-set="remind.evening" value="${r.evening}"></div>
-      <label class="set-row"><span class="lbl"><b>A la hora de cada hábito</b><span>Solo los que tienen hora</span></span><span class="switch"><input type="checkbox" data-set="remind.habits" ${r.habits ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row"><span class="lbl"><b>Noche</b><span>Solo lo que te falta</span></span><input class="input" style="width:120px" type="time" data-set="remind.evening" value="${r.evening}"></div>
+      <label class="set-row"><span class="lbl"><b>A la hora de cada hábito</b><span>Cada uno se ajusta en su ficha</span></span><span class="switch"><input type="checkbox" data-set="remind.habits" ${r.habits ? 'checked' : ''}><i></i></span></label>
+      <label class="set-row"><span class="lbl"><b>Horas de silencio</b><span>${r.quiet.on ? `De ${r.quiet.from} a ${r.quiet.to} no sale nada` : 'Apagado'}</span></span><span class="switch"><input type="checkbox" data-set="remind.quiet.on" ${r.quiet.on ? 'checked' : ''}><i></i></span></label>
+      ${r.quiet.on ? `<div class="set-row"><span class="lbl"><b>Horario</b></span><input class="input" style="width:110px" type="time" data-set="remind.quiet.from" value="${r.quiet.from}"><input class="input" style="width:110px" type="time" data-set="remind.quiet.to" value="${r.quiet.to}"></div>` : ''}
+    </div>
+
+    <div class="section-t">Cómo te hablan</div>
+    <div class="set-list">
+      <div class="set-row stack"><span class="lbl"><b>Tono</b></span><div class="seg">${Object.entries(TONOS).map(([v, t]) => `<button data-act="tone" data-v="${v}" aria-pressed="${(r.tone || 'motivador') === v}">${t.nombre}</button>`).join('')}</div></div>
+      <div class="set-row stack"><label class="lbl" for="txMan"><b>Mensaje de la mañana</b><span>Vacío = el del tono</span></label><textarea class="input area" id="txMan" rows="2" maxlength="200" data-set="remind.textoManana" placeholder="${esc((TONOS[r.tone] || TONOS.motivador).manana[1])}">${esc(r.textoManana)}</textarea></div>
+      <div class="set-row stack"><label class="lbl" for="txNoc"><b>Mensaje de la noche</b><span>Vacío = el del tono</span></label><textarea class="input area" id="txNoc" rows="2" maxlength="200" data-set="remind.textoNoche" placeholder="${esc((TONOS[r.tone] || TONOS.motivador).noche[1])}">${esc(r.textoNoche)}</textarea></div>
       <div class="set-row"><button class="btn sm" data-act="testNotif">Probar aviso</button><button class="btn sm ghost" data-act="ics">Pasarlos al calendario</button></div>
     </div>
-    <p class="help">En iPhone los avisos solo andan con la app instalada (Compartir → Agregar a inicio) y abierta desde el ícono. Para que suenen siempre, aunque la app esté cerrada, usá “Pasarlos al calendario”: se agregan como eventos con alarma.</p>
+    <p class="help">Podés usar <b>{nombre}</b>, <b>{faltan}</b> (“3 hábitos”) y <b>{lista}</b> (“Gym, Leer y Agua”). El texto de cada hábito se cambia en su ficha.</p>
+    <p class="help">En iPhone: instalá la app (Safari → Compartir → Agregar a inicio), abrila desde el ícono y tocá “Activar”. Si no, “Pasarlos al calendario” los agrega como alarmas.</p>
+    ${DEMO ? '' : `<details class="other adv"><summary>Servidor de avisos${I.abajo}</summary><div class="set-list"><div class="set-row stack"><label class="lbl" for="pushUrl"><b>Dirección</b><span>Ya viene puesta; cambiala solo si te lo piden</span></label>
+      <input class="input" id="pushUrl" data-set="push.url" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="${esc(APP.avisos || 'https://rutina-avisos….workers.dev')}" value="${esc(S.settings.push.url)}"></div></div></details>`}
 
     <div class="section-t">Preferencias</div>
     <div class="set-list">
@@ -585,6 +655,15 @@ function habitForm(id) {
         <div class="field"><label for="hDur">Duración</label><select class="input" id="hDur">${[10, 15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${Number(h.dur) === m ? 'selected' : ''}>${m < 60 ? m + ' min' : m / 60 + ' h'}</option>`).join('')}</select></div></div>
       <div class="field"><span class="lb">Momento del día</span>${segHTML('part', [['', 'Auto'], ['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche']], h.part || '')}</div>
       <p class="help" style="margin-top:-6px">Con hora, aparece en la agenda y te puede avisar.</p>
+      ${(() => {
+        const a = avisoHabito(h, S.settings.remind);
+        const tono = TONOS[S.settings.remind.tone] || TONOS.motivador;
+        return `<div class="field aviso-h"><span class="lb">Aviso</span><div class="set-list">
+          <label class="set-row"><span class="lbl"><b>Avisarme</b><span>${S.settings.remind.on ? 'A la hora que elijas' : 'Los avisos están apagados en Ajustes'}</span></span><span class="switch"><input type="checkbox" id="hRemOn" ${a.on || (h.remind && h.remind.on) ? 'checked' : ''}><i></i></span></label>
+          <div class="set-row"><span class="lbl"><b>Hora del aviso</b><span>Vacío = la del hábito</span></span><input class="input" style="width:120px" type="time" id="hRemTime" value="${esc((h.remind && h.remind.time) || '')}"></div>
+          <div class="set-row stack"><label class="lbl" for="hRemText"><b>Texto</b><span>Vacío = el del tono</span></label><input class="input" id="hRemText" maxlength="120" value="${esc((h.remind && h.remind.text) || '')}" placeholder="${esc(tono.habito[1])}"></div>
+        </div></div>`;
+      })()}
       <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
         ${id ? `<button class="btn block" type="button" data-act="archive" data-id="${id}">Archivar (guarda la historia)</button><button class="btn danger block" type="button" data-act="delHabit" data-id="${id}">Borrar para siempre</button>` : ''}</div>
     </form>`);
@@ -598,6 +677,10 @@ function saveHabit(form) {
   const freq = type === 'days' ? { type, days: pressed('days').map(Number) } : type === 'times' ? { type, n: Number(form.querySelector('#hN').textContent) } : { type: 'daily' };
   if (type === 'days' && !freq.days.length) { toast('Elegí al menos un día'); return; }
   const data = { name, icon: pressed('icon')[0] || '🎯', color: pressed('color')[0] || COLORES[0], freq, time: form.querySelector('#hTime').value || null, dur: Number(form.querySelector('#hDur').value) || 30, part: pressed('part')[0] || null };
+  const remOn = form.querySelector('#hRemOn').checked, remTime = form.querySelector('#hRemTime').value || null;
+  if (remOn && !remTime && !data.time) { toast('Para avisarte, poné una hora (del hábito o del aviso)'); form.querySelector('#hRemTime').focus(); return; }
+  const porDefecto = !!(S.settings.remind.habits && data.time); // si coincide con lo general, sigue a lo general
+  data.remind = { on: remOn === porDefecto ? null : remOn, time: remTime, text: form.querySelector('#hRemText').value.trim().slice(0, 120) };
   if (id) Object.assign(byId(id), data);
   else S.habits.push({ id: newId('h'), archived: false, created: today(), ...data });
   commit(); closeSheet(); render(); toast(id ? 'Hábito actualizado' : 'Hábito agregado');
@@ -718,21 +801,97 @@ async function notify(title, body, tag) {
   } catch { /* algunos navegadores no dejan */ }
 }
 
+// Avisos locales (con la app abierta). Si están los avisos push, los manda el servidor y acá no se repiten.
 function remindTick() {
   const r = S.settings.remind;
-  if (!r.on || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (!r.on || pushActivo() || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const k = today(), m = nowMinutes();
   let f = firedGet();
   if (f.k !== k) f = { k, ids: [] };
-  const due = habitsActive().filter((h) => dueOn(h, S.log, k) && !statusOf(S.log, h.id, k));
-  const list = [];
-  if (r.morning) list.push({ id: 'manana', at: toMin(r.morning), go: () => due.length && notify(`Buen día ☀️`, `Hoy tenés ${due.length} ${due.length === 1 ? 'hábito' : 'hábitos'}. Arrancá por: ${due[0].name}.`, 'manana') });
-  if (r.evening) list.push({ id: 'noche', at: toMin(r.evening), go: () => due.length && notify('Cierre del día', `Te ${due.length === 1 ? 'falta' : 'faltan'}: ${due.slice(0, 4).map((h) => h.name).join(', ')}.`, 'noche') });
-  if (r.habits) for (const h of due) if (h.time) list.push({ id: h.id, at: toMin(h.time), go: () => notify(`${h.icon} ${h.name}`, 'Es la hora. Un toque y listo.', h.id) });
-  for (const it of list) {
-    if (m >= it.at && m < it.at + 10 && !f.ids.includes(it.id)) { f.ids.push(it.id); it.go(); }
+  const hechos = hechosDe(S, [k])[k];
+  for (const av of planAvisos(S, k, 1)) {
+    if (m < av.min || m >= av.min + 10 || f.ids.includes(av.id)) continue;
+    f.ids.push(av.id);
+    const msg = llenar(av, hechos);
+    if (msg) notify(msg.title, msg.body, av.hid || av.tipo);
   }
   firedSet(f);
+}
+
+// ---------- Avisos push (app cerrada) ----------
+// iPhone: solo con la app instalada en la pantalla de inicio (iOS 16.4+). El servidor guarda la suscripción y un
+// plan de los próximos días; cada vez que marcás algo, le avisamos qué hiciste para que la noche liste solo lo que falta.
+const PUSH_DIAS = 10;
+const pushUrl = () => String(S.settings.push.url || APP.avisos || '').trim().replace(/\/+$/, '');
+const instalada = () => { try { return !!(navigator.standalone || matchMedia('(display-mode: standalone)').matches); } catch { return false; } };
+const pushSoportado = () => typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined';
+const pushActivo = () => !DEMO && !!(S.settings.push.on && S.settings.push.id);
+let pushTimer = null, pushBusy = false;
+
+function pushEstado() {
+  if (DEMO) return 'En la demo no hay avisos push';
+  if (pushActivo()) return S.settings.remind.on ? 'Activos en este teléfono' : 'Prendé “Avisos” para que salgan';
+  if (!pushSoportado()) return /iPhone|iPad/.test(navigator.userAgent) && !instalada() ? 'Primero instalá la app (Compartir → Agregar a inicio)' : 'Este navegador no los permite';
+  if (!pushUrl()) return 'Falta el servidor de avisos';
+  if (Notification.permission === 'denied') return 'Bloqueados: habilitalos en Ajustes del iPhone → Notificaciones';
+  return 'Apagados';
+}
+function pushBoton() {
+  if (DEMO || (!pushActivo() && (!pushSoportado() || !pushUrl()))) return '';
+  return pushActivo() ? '<button class="btn sm ghost" data-act="pushOff">Apagar</button>' : '<button class="btn sm primary" data-act="pushOn">Activar</button>';
+}
+const b64uBytes = (s) => { const t = s.replace(/-/g, '+').replace(/_/g, '/'); const b = atob(t + '='.repeat((4 - (t.length % 4)) % 4)); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+
+async function pushPost(ruta, data) {
+  const r = await fetch(pushUrl() + ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  let j = null; try { j = await r.json(); } catch { /* */ }
+  if (!r.ok) { const e = new Error((j && j.error) || `El servidor respondió ${r.status}`); e.status = r.status; throw e; }
+  return j;
+}
+const pushDatos = () => {
+  const k = today();
+  return { plan: planAvisos(S, k, PUSH_DIAS), hechos: hechosDe(S, [addDays(k, -1), k]) };
+};
+
+async function pushOn() {
+  if (!S.settings.remind.on) { S.settings.remind.on = true; save(S); }
+  try {
+    if (Notification.permission !== 'granted') await Notification.requestPermission();
+    if (Notification.permission !== 'granted') { toast('Sin permiso: habilitalo en Ajustes del iPhone → Notificaciones → Rutina'); render(); return; }
+    toast('Activando…');
+    const reg = await navigator.serviceWorker.ready;
+    const { clave } = await (await fetch(pushUrl() + '/vapid')).json();
+    if (!clave) throw new Error('El servidor no tiene claves');
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(clave) });
+    const p = S.settings.push;
+    const j = await pushPost('/suscribir', { sub: sub.toJSON(), id: p.id, clave: p.clave, ...pushDatos() });
+    Object.assign(p, { on: true, id: j.id, clave: j.clave });
+    save(S); render();
+    toast('Listo: te van a llegar aunque cierres la app');
+  } catch (err) {
+    toast(err && err.name === 'TypeError' ? 'No se pudo conectar con el servidor de avisos' : (err.message || 'No se pudo activar'));
+  }
+}
+async function pushOff() {
+  const p = S.settings.push;
+  try { if (p.id) await pushPost('/baja', { id: p.id, clave: p.clave }); } catch { /* igual se apaga acá */ }
+  try { const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch { /* */ }
+  Object.assign(p, { on: false, id: '', clave: '' });
+  save(S); render(); toast('Avisos con la app cerrada: apagados');
+}
+// Después de cada cambio (debounce): manda plan y hechos. Si el servidor no reconoce el equipo, hay que reactivar.
+function pushLuego(ms = 2500) {
+  if (!pushActivo()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushSync, ms);
+}
+async function pushSync() {
+  if (!pushActivo() || pushBusy) return;
+  pushBusy = true;
+  try { await pushPost('/plan', { id: S.settings.push.id, clave: S.settings.push.clave, ...pushDatos() }); }
+  catch (err) { if (err.status === 404) { S.settings.push.on = false; save(S); toast('Los avisos con la app cerrada se cortaron: tocá Activar de nuevo en Ajustes'); } }
+  finally { pushBusy = false; }
 }
 
 function icsText() {
@@ -749,10 +908,11 @@ function icsText() {
     'BEGIN:VTIMEZONE', 'TZID:America/Argentina/Cordoba', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE'];
   if (r.morning) out.push(ev('manana', `${APP.name}: qué toca hoy`, r.morning, 'FREQ=DAILY'));
   if (r.evening) out.push(ev('noche', `${APP.name}: cerrá el día`, r.evening, 'FREQ=DAILY'));
-  if (r.habits) for (const h of habitsActive()) {
-    if (!h.time) continue;
+  for (const h of habitsActive()) {
+    const a = avisoHabito(h, r);
+    if (!a.on) continue;
     const rule = h.freq.type === 'days' ? `FREQ=WEEKLY;BYDAY=${h.freq.days.map((d) => BY[d]).join(',')}` : 'FREQ=DAILY';
-    out.push(ev(h.id, `${h.icon} ${h.name}`, h.time, rule, Number(h.dur) || 15));
+    out.push(ev(h.id, `${h.icon} ${h.name}`, a.time, rule, Number(h.dur) || 15));
   }
   out.push('END:VCALENDAR');
   return out.join('\r\n');
@@ -832,11 +992,32 @@ const actions = {
   step: (el) => { const n = sheet.querySelector('#hN'); n.textContent = Math.max(1, Math.min(7, Number(n.textContent) + Number(el.dataset.d))); },
   theme: (el) => { S.settings.theme = el.dataset.v; commit(); render(); },
   testNotif: async () => {
-    if (typeof Notification === 'undefined') { toast('Acá no hay avisos. En iPhone: instalá la app y abrila desde el ícono.'); return; }
+    const ej = ejemploAviso(S, today(), nowMinutes() < 15 * 60 ? 'manana' : 'noche');
+    if (pushActivo()) {
+      try { await pushPost('/probar', { id: S.settings.push.id, clave: S.settings.push.clave, ...ej }); toast('Enviado desde el servidor: cerrá la app y fijate'); }
+      catch (err) { toast(err.message || 'No se pudo probar'); if (err.status === 410 || err.status === 404) { S.settings.push.on = false; save(S); render(); } }
+      return;
+    }
+    if (typeof Notification === 'undefined') { toast(`Así sería: “${ej.title} — ${ej.body}”`); return; }
     if (Notification.permission === 'default') await Notification.requestPermission();
     if (Notification.permission !== 'granted') { toast('Sin permiso para avisos'); render(); return; }
-    notify(`${APP.name}`, 'Así te van a llegar los avisos.', 'prueba'); render();
+    notify(ej.title, ej.body, 'prueba'); render();
   },
+  tone: (el) => { S.settings.remind.tone = el.dataset.v; commit(); render(); const ej = ejemploAviso(S, today()); toast(`${ej.title} — ${ej.body}`); },
+  pushOn: () => pushOn(),
+  pushOff: () => pushOff(),
+  obNext: () => {
+    const o = obEstado();
+    if (o.paso === 0) { const i = document.getElementById('obName'); if (i) o.name = i.value; }
+    o.paso = Math.min(2, o.paso + 1); window.scrollTo({ top: 0 }); render();
+  },
+  obBack: () => { const o = obEstado(); o.paso = Math.max(0, o.paso - 1); window.scrollTo({ top: 0 }); render(); },
+  obPick: (el) => {
+    const o = obEstado(), id = el.dataset.id;
+    o.sel = o.sel.includes(id) ? o.sel.filter((x) => x !== id) : [...o.sel, id];
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+  },
+  obFin: () => obFin(),
   ics: () => { download(`${APP.name.toLowerCase()}-recordatorios.ics`, icsText(), 'text/calendar'); toast('Abrí el archivo para sumarlos al calendario'); },
   export: () => { download(`${APP.name.toLowerCase()}-copia-${today()}.json`, exportJSON(S), 'application/json'); toast('Copia exportada'); },
   resetDemo: () => { S = seedDemo(today()); commit(); ui.tab = 'hoy'; render(); toast('Demo reiniciada'); },
@@ -867,9 +1048,20 @@ document.addEventListener('submit', (e) => {
   if (e.target.id === 'fClass') saveClass(e.target);
   if (e.target.id === 'fAgregar') saveAgregar(e.target);
   if (e.target.id === 'fQuick') saveQuick(e.target);
+  if (e.target.id === 'fOb0') actions.obNext();
+  if (e.target.id === 'fObNuevo') {
+    const o = obEstado(), name = e.target.querySelector('#obNuevo').value.trim().slice(0, 40);
+    if (!name) return;
+    const id = newId('h');
+    o.propios.push({ id, name, icon: '🎯', color: COLORES[o.propios.length % COLORES.length], freq: { type: 'daily' }, time: null, part: null, dur: 30, archived: false });
+    o.sel.push(id); o.nuevo = '';
+    render(); toast(`${name}: agregado`);
+  }
 });
 
 document.addEventListener('input', (e) => {
+  if (e.target.id === 'obName') { obEstado().name = e.target.value; return; }
+  if (e.target.id === 'obNuevo') { obEstado().nuevo = e.target.value; return; }
   if (e.target.id !== 'qText') return;
   ui.quick = e.target.value;
   const p = document.getElementById('qPrev');
@@ -877,14 +1069,21 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('change', async (e) => {
+  if (e.target.id === 'obClases') { obEstado().clases = e.target.checked; render(); return; }
   const k = e.target.dataset && e.target.dataset.set;
   if (!k) return;
   const r = S.settings.remind;
   if (k === 'name') S.settings.name = e.target.value.trim().slice(0, 20);
   if (k === 'grouping') S.settings.grouping = e.target.checked;
+  if (k === 'classesOn') { S.settings.classesOn = e.target.checked; S.settings.classesReviewed = true; }
   if (k === 'remind.morning') r.morning = e.target.value;
   if (k === 'remind.evening') r.evening = e.target.value;
   if (k === 'remind.habits') r.habits = e.target.checked;
+  if (k === 'remind.quiet.on') r.quiet.on = e.target.checked;
+  if (k === 'remind.quiet.from' && e.target.value) r.quiet.from = e.target.value;
+  if (k === 'remind.quiet.to' && e.target.value) r.quiet.to = e.target.value;
+  if (k === 'remind.textoManana' || k === 'remind.textoNoche') r[k.slice(7)] = e.target.value.trim().slice(0, 200);
+  if (k === 'push.url') S.settings.push.url = e.target.value.trim();
   if (k === 'cal.url' || k === 'cal.token') {
     S.settings.cal[k.slice(4)] = e.target.value.trim();
     if (k === 'cal.url' && !S.settings.cal.url) { cal = { at: 0, eventos: [], error: null, errorAt: 0 }; try { localStorage.removeItem(CAL_KEY); } catch { /* */ } }
@@ -907,7 +1106,7 @@ document.addEventListener('change', async (e) => {
 });
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeSheet(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); pushLuego(500); } });
 setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
 
@@ -923,6 +1122,10 @@ if (pedido) ui.tab = 'agenda';
 render();
 remindTick();
 calSync({ forzar: true });
+pushLuego(1500);
+// Tocar un aviso abre la app en Hoy.
+if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.ir === 'hoy') { closeSheet(); ui.tab = 'hoy'; window.scrollTo({ top: 0 }); render(); } });
+if (new URLSearchParams(location.search).get('ir') === 'hoy') { try { history.replaceState(null, '', location.pathname); } catch { /* */ } }
 if (pedido) agregarSheet(pedido);
 // Si la pestaña ya estaba abierta, el Atajo solo cambia el #: se atiende igual.
 window.addEventListener('hashchange', () => { const t = leerAgregar(); if (t) { ui.tab = 'agenda'; render(); agregarSheet(t); } });

@@ -1,6 +1,6 @@
 // Modo sin internet: guarda la app y la sirve desde el teléfono. Cambiar VERSION en cada cambio publicado.
-const VERSION = 'rutina-v2';
-const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'js/agregar.js', 'js/calendario.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
+const VERSION = 'rutina-v3';
+const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'js/agregar.js', 'js/calendario.js', 'js/avisos.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
@@ -19,8 +19,19 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match('index.html')))
   );
 });
-// Tocar un aviso abre la app.
+// Aviso push del servidor (app cerrada): { title, body, tag }.
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Rutina', {
+    body: d.body || '', tag: d.tag || 'rutina', icon: 'icons/icono-192.png', badge: 'icons/icono-192.png', data: { ir: 'hoy' },
+  }));
+});
+// Tocar un aviso abre la app en Hoy.
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then((cs) => (cs[0] ? cs[0].focus() : self.clients.openWindow('./'))));
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
+    if (cs[0]) { cs[0].postMessage({ ir: 'hoy' }); return cs[0].focus(); }
+    return self.clients.openWindow('./?ir=hoy');
+  }));
 });

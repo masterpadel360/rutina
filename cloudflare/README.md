@@ -42,3 +42,35 @@ Ajustes → Calendario del iPhone → Dirección del servidor (`https://rutina-c
 
 ### Pruebas
 `node tests/ics.test.mjs` (lector ICS, repeticiones, zonas y el servidor con CORS/clave/caché).
+
+## Avisos push (`avisos-worker.js`)
+
+Manda las notificaciones aunque la app esté cerrada (Web Push; en iPhone solo con la app instalada en la pantalla de inicio, iOS 16.4+). Un solo archivo, sin dependencias: cifrado aes128gcm (RFC 8291) y firma VAPID (RFC 8292) con WebCrypto. Probado contra el vector del RFC 8291 y contra el servicio push real de Chrome (FCM respondió 201).
+
+### Cómo funciona
+- El teléfono se suscribe (`POST /suscribir` con la suscripción + un **plan** de avisos de los próximos 10 días: hora UTC, título y texto ya armados) y recibe `id` + `clave`.
+- Cada cambio en la app (marcar un hábito, cambiar horarios o textos) manda `POST /plan` con el plan nuevo y los **hechos** de hoy y ayer.
+- El **cron** (cada 5 min) manda lo que toca. Los de mañana/noche se completan al enviar con lo que falta (`{faltan}`, `{lista}`); si ya está todo hecho, no se mandan. El de cada hábito no sale si ya se hizo. Si el cron se atrasa, se manda hasta 20 min tarde; más viejo, se descarta.
+- Si el servicio push responde 404/410 (suscripción vencida), se borra el equipo y la app pide reactivar.
+- Si el teléfono no abre la app en 10 días, se terminan los avisos planificados (se renuevan al abrirla).
+- Otros endpoints: `GET /vapid` (clave pública), `POST /probar` (aviso de prueba), `POST /baja`. Máximo 30 equipos.
+
+### Variables y recursos
+| Nombre | Tipo | Valor |
+|---|---|---|
+| `AVISOS` | KV namespace (binding) | Crear uno nuevo (`rutina-avisos`) |
+| `VAPID_PUBLIC` | Texto | De `node tools/generar-vapid.mjs` |
+| `VAPID_PRIVATE` | **Secreto** | De `node tools/generar-vapid.mjs` (no guardarla en el repo) |
+| `VAPID_SUBJECT` | Texto | `mailto:gabohuppi22@gmail.com` |
+| `ORIGEN` | Texto | `https://masterpadel360.github.io` |
+| Cron Trigger | — | `*/5 * * * *` |
+
+### Publicarlo (lo hace el asistente)
+1. `node tools/generar-vapid.mjs` → anotar las dos claves (una sola vez; si se cambian, todos tienen que reactivar).
+2. Panel: Workers & Pages → KV → Create namespace `rutina-avisos`.
+3. Create Worker `rutina-avisos` → pegar `avisos-worker.js` → Deploy.
+4. Settings → Bindings → KV namespace: nombre `AVISOS` → `rutina-avisos`. Variables: las de la tabla. Triggers → Cron: `*/5 * * * *`.
+   (Con wrangler: `wrangler-avisos.toml` tiene todo; completar el id del KV y la clave pública.)
+5. Poner la dirección en `js/store.js` → `APP.avisos = 'https://rutina-avisos.<cuenta>.workers.dev'` (así nadie la tiene que escribir), subir `VERSION` en `sw.js` y publicar la app.
+
+Pruebas: `node tests/avisos.test.mjs`.

@@ -1,0 +1,18 @@
+# Avisos push de Rutina. Uso: npx wrangler deploy -c wrangler-avisos.toml
+# Antes: npx wrangler kv namespace create AVISOS  → pegar el id abajo.
+# Secretos (no van acá): npx wrangler secret put VAPID_PRIVATE -c wrangler-avisos.toml
+name = "rutina-avisos"
+main = "avisos-worker.js"
+compatibility_date = "2026-10-01"
+
+[[kv_namespaces]]
+binding = "AVISOS"
+id = "PEGAR_ID_DEL_KV"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+ORIGEN = "https://masterpadel360.github.io"
+VAPID_SUBJECT = "mailto:gabohuppi22@gmail.com"
+VAPID_PUBLIC = "PEGAR_CLAVE_PUBLICA"

@@ -319,3 +319,31 @@ input[type="time"].input { appearance: none; -webkit-appearance: none; }
 .cal-title { display: flex; align-items: center; min-width: 0; }
 .cal-title .ci { width: 20px; height: 20px; margin-right: 8px; }
 .cal-notice { background: color-mix(in srgb, var(--cal) 10%, var(--surface)); }
+
+/* ---------- Bienvenida ---------- */
+.ob .tabs, .ob .fab { display: none !important; }
+.ob { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+.ob-pasos { display: flex; gap: 6px; margin: 6px 0 18px; }
+.ob-pasos i { flex: 1; height: 4px; border-radius: 4px; background: var(--surface-3); }
+.ob-pasos i.on { background: var(--accent); }
+.ob-head { margin-bottom: 14px; }
+.ob-head .brand { margin-bottom: 18px; }
+.ob-head h1 { font-size: 30px; line-height: 1.1; letter-spacing: -.02em; margin: 0 0 8px; }
+.ob-head p { margin: 0; font-size: 15.5px; }
+.sugs { display: grid; gap: 8px; }
+.sug { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; border: 1.5px solid transparent; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 10px 12px; min-height: 60px; }
+.sug .ico { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 19px; flex: none; background: color-mix(in srgb, var(--c) 16%, transparent); }
+.sug .lbl { flex: 1; min-width: 0; }
+.sug .lbl b { display: block; font-size: 15.5px; font-weight: 650; }
+.sug .lbl span { display: block; font-size: 13px; color: var(--muted); }
+.sug .check { width: 28px; height: 28px; }
+.sug .check svg { width: 16px; height: 16px; fill: none; stroke: transparent; stroke-dashoffset: 0; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sug[aria-pressed="true"] { border-color: var(--c); }
+.sug[aria-pressed="true"] .check { background: var(--c); border-color: var(--c); }
+.sug[aria-pressed="true"] .check svg { stroke: #fff; }
+.ob-sticky { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 22%); padding: 18px 0 calc(env(safe-area-inset-bottom) + 8px); margin-top: 6px; }
+.btn[disabled] { opacity: .45; }
+textarea.input.area { min-height: 64px; padding: 10px 12px; resize: vertical; line-height: 1.35; }
+.adv { margin-top: 14px; }
+.aviso-h { margin-top: 16px; }
+.aviso-h .set-list { box-shadow: none; border: 1.5px solid var(--line); }
