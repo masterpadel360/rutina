@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rutina</title>
+<meta name="description" content="Demo de Rutina: hábitos, agenda del día y rachas con perdón">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22116%22%20fill%3D%22%2314201A%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22150%22%20fill%3D%22none%22%20stroke%3D%22%232C3A33%22%20stroke-width%3D%2240%22%2F%3E%3Cpath%20d%3D%22M256%20106a150%20150%200%201%201-129.9%2075%22%20fill%3D%22none%22%20stroke%3D%22%23C9E63B%22%20stroke-width%3D%2240%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M196%20262l42%2042%2084-92%22%20fill%3D%22none%22%20stroke%3D%22%23F4F8EC%22%20stroke-width%3D%2240%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
+<style>
+/* Rutina — estilos. Colores como variables: claro por defecto, oscuro con el sistema o elegido a mano. */
+:root {
+  --bg: #F3F4EF;
+  --surface: #FFFFFF;
+  --surface-2: #ECEEE7;
+  --surface-3: #E1E4DB;
+  --text: #151A17;
+  --muted: #5F6862;
+  --faint: #8D958F;
+  --line: #DCE0D6;
+  --accent: #1E7A4C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCEFE3;
+  --ball: #C9E63B;
+  --warn: #B4691B;
+  --shadow: 0 1px 2px rgba(20, 30, 20, .06), 0 6px 20px rgba(20, 30, 20, .06);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --gutter: 16px;
+  --tabs-h: 64px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1110;
+    --surface: #161C19;
+    --surface-2: #1E2522;
+    --surface-3: #27302C;
+    --text: #EDF1EC;
+    --muted: #9CA69F;
+    --faint: #6E7872;
+    --line: #29312D;
+    --accent: #B5E04A;
+    --accent-ink: #11160D;
+    --accent-soft: #263317;
+    --ball: #C9E63B;
+    --warn: #E3A35A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1110;
+  --surface: #161C19;
+  --surface-2: #1E2522;
+  --surface-3: #27302C;
+  --text: #EDF1EC;
+  --muted: #9CA69F;
+  --faint: #6E7872;
+  --line: #29312D;
+  --accent: #B5E04A;
+  --accent-ink: #11160D;
+  --accent-soft: #263317;
+  --ball: #C9E63B;
+  --warn: #E3A35A;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font-family: var(--font); font-size: 16px; line-height: 1.4;
+  overflow-x: hidden; min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  padding-bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 16px);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Estructura ---------- */
+.wrap { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 14px) var(--gutter) 0; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+.head h1 { font-size: 28px; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.02em; font-weight: 750; }
+.eyebrow { font-size: 13px; color: var(--muted); font-weight: 600; }
+.brand { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+.section-t { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 20px 4px 8px; display: flex; justify-content: space-between; align-items: center; }
+.section-t small { text-transform: none; letter-spacing: 0; font-weight: 600; }
+.muted { color: var(--muted); }
+.tiny { font-size: 13px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.grow { flex: 1; min-width: 0; }
+
+/* ---------- Pestañas ---------- */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  height: calc(var(--tabs-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+.tab { border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 650; color: var(--faint); min-height: 44px; }
+.tab svg { width: 24px; height: 24px; }
+.tab[aria-current="page"] { color: var(--accent); }
+
+/* ---------- Botones ---------- */
+.btn { border: 0; border-radius: 14px; min-height: 48px; padding: 0 18px; font-weight: 700; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.danger { background: transparent; color: #C0392B; }
+:root[data-theme="dark"] .btn.danger { color: #FF8A7A; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.danger { color: #FF8A7A; } }
+.btn.block { width: 100%; }
+.btn.sm { min-height: 44px; padding: 0 14px; font-size: 15px; }
+.btn:active { transform: scale(.98); }
+.icon-btn { width: 44px; height: 44px; border-radius: 12px; border: 0; background: transparent; display: inline-grid; place-items: center; color: var(--muted); flex: none; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn:active { background: var(--surface-2); }
+.fab { position: fixed; right: max(var(--gutter), calc(50% - 280px + var(--gutter))); bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 16px); z-index: 15; border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); padding: 0 20px 0 16px; min-height: 52px; }
+.fab svg { width: 22px; height: 22px; }
+
+/* ---------- Hoy: anillo ---------- */
+.hero { display: flex; align-items: center; gap: 16px; }
+.ring { position: relative; width: 104px; height: 104px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .bgc { stroke: var(--surface-3); }
+.ring .fgc { stroke: var(--accent); transition: stroke-dashoffset .6s cubic-bezier(.2, .8, .2, 1); }
+.ring .lbl { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring .lbl b { font-size: 26px; line-height: 1; letter-spacing: -.02em; }
+.ring .lbl span { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
+.hero h2 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.01em; }
+.hero p { margin: 0; color: var(--muted); font-size: 14px; }
+.next { margin-top: 10px; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 600; background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.next i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.next span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Hábitos ---------- */
+.list { display: grid; gap: 8px; }
+.habit { display: flex; align-items: stretch; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; transition: background-color .25s; }
+.habit .tap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; border: 0; background: none; text-align: left; padding: 12px 6px 12px 12px; min-height: 64px; }
+.habit .ico { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; flex: none; background: color-mix(in srgb, var(--c) 16%, transparent); }
+.habit .txt { flex: 1; min-width: 0; }
+.habit .name { font-weight: 650; font-size: 16.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.habit .meta { font-size: 13px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1px; }
+.habit .meta .st { color: var(--warn); font-weight: 650; }
+.check { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid var(--line); flex: none; display: grid; place-items: center; transition: background-color .2s, border-color .2s; }
+.check svg { width: 18px; height: 18px; stroke: var(--accent-ink); stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; }
+.habit.done { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.habit.done .check { background: var(--accent); border-color: var(--accent); }
+.habit.done .check svg { stroke-dashoffset: 0; }
+.habit.done .name { color: var(--muted); }
+.habit.pop .check { animation: pop .42s cubic-bezier(.2, 1.4, .4, 1); }
+.habit.pop .check svg { transition: stroke-dashoffset .3s .08s ease-out; }
+.habit.pop .ico { animation: nudge .5s ease-out; }
+@keyframes pop { 0% { transform: scale(.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@keyframes nudge { 0% { transform: scale(1); } 40% { transform: scale(1.12) rotate(-6deg); } 100% { transform: scale(1); } }
+.habit.skip { opacity: .62; box-shadow: none; background: var(--surface-2); }
+.habit.skip .check { border-style: dashed; }
+.habit .more { align-self: center; margin-right: 4px; }
+details.other { margin-top: 14px; }
+details.other summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-weight: 650; font-size: 14px; padding: 0 4px; }
+details.other summary::-webkit-details-marker { display: none; }
+details.other[open] summary svg { transform: rotate(180deg); }
+details.other summary svg { width: 18px; height: 18px; transition: transform .2s; }
+.empty { text-align: center; padding: 28px 16px; color: var(--muted); }
+.empty b { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
+
+/* Resumen semanal */
+.summary { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface)); }
+.summary .big { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.summary h3 { margin: 0 0 8px; font-size: 15px; }
+.summary ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+.bar { height: 8px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+
+/* ---------- Agenda ---------- */
+.daynav { display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px; margin-bottom: 12px; }
+.daynav .lbl { font-weight: 700; text-align: center; flex: 1; min-width: 0; font-size: 15px; border: 0; background: none; min-height: 44px; }
+.daynav .lbl small { display: block; font-weight: 600; color: var(--muted); font-size: 12px; text-transform: none; }
+.notice { display: flex; gap: 10px; align-items: center; background: color-mix(in srgb, var(--ball) 26%, var(--surface)); border-radius: 14px; padding: 10px 10px 10px 14px; margin-bottom: 12px; font-size: 14px; }
+.notice p { margin: 0; flex: 1; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; min-height: 36px; padding: 0 12px; font-size: 13.5px; font-weight: 650; display: inline-flex; align-items: center; gap: 6px; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.timeline { position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 8px 8px 8px 0; }
+.tl-inner { position: relative; margin-left: 52px; }
+.tl-hour { position: absolute; left: -52px; right: 0; height: 0; border-top: 1px solid var(--line); }
+.tl-hour span { position: absolute; left: 8px; top: -9px; font-size: 12px; color: var(--faint); background: var(--surface); padding-right: 6px; font-variant-numeric: tabular-nums; }
+.tl-slot { position: absolute; left: 0; right: 0; border: 0; background: none; padding: 0; }
+.tl-slot:active { background: var(--surface-2); }
+.ev { position: absolute; border: 0; text-align: left; border-radius: 10px; padding: 5px 8px; font-size: 13px; line-height: 1.2; overflow: hidden; background: color-mix(in srgb, var(--c) 18%, var(--surface)); color: var(--text); border-left: 4px solid var(--c); min-height: 22px; }
+.ev b { display: block; font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.ev.short { display: flex; gap: 6px; align-items: center; padding-top: 2px; padding-bottom: 2px; }
+.ev.short b { display: inline; }
+.ev.clase { background: color-mix(in srgb, var(--ball) 30%, var(--surface)); border-left-color: #8FB21C; }
+.ev.habito { background: transparent; border: 1.5px dashed var(--c); border-left-width: 4px; border-left-style: solid; }
+.ev.habito.hecho { background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+.ev.habito.hecho b { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
+.ev.off { opacity: .45; }
+.now { position: absolute; left: -6px; right: 0; height: 2px; background: #E5484D; z-index: 3; pointer-events: none; }
+.now::before { content: ""; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: #E5484D; }
+
+/* ---------- Semana ---------- */
+.weeknav { margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) repeat(7, 28px); gap: 6px 3px; align-items: center; }
+.grid .hd { font-size: 11.5px; font-weight: 700; color: var(--faint); text-align: center; }
+.grid .hd.hoy { color: var(--accent); }
+.grid .hn { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.grid .hn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.cell.done { background: var(--c, var(--accent)); color: #fff; }
+.cell.done::after { content: "✓"; }
+.cell.joker { background: color-mix(in srgb, var(--ball) 40%, var(--surface)); color: var(--text); }
+.cell.joker::after { content: "★"; font-size: 13px; }
+.cell.skip { background: var(--surface-2); color: var(--faint); }
+.cell.skip::after { content: "–"; }
+.cell.miss, .cell.open { background: var(--surface-2); }
+.cell.pending { border: 2px dashed var(--line); }
+.cell.future { border: 1.5px solid var(--surface-3); }
+.cell.off::after { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--surface-3); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.legend .cell { width: 18px; height: 18px; border-radius: 6px; font-size: 10px; }
+.streaks { display: grid; gap: 8px; }
+.streak { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 10px 12px; border: 0; width: 100%; text-align: left; min-height: 60px; }
+.streak .ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 19px; background: color-mix(in srgb, var(--c) 16%, transparent); flex: none; }
+.streak .val { text-align: right; flex: none; }
+.streak .val b { font-size: 20px; display: block; line-height: 1.1; }
+.streak .val span { font-size: 12px; color: var(--muted); }
+.month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.month .cell { width: 100%; aspect-ratio: 1; height: auto; border-radius: 10px; }
+.month .cell.empty { background: none; border: 0; }
+.month .cell::after { content: none !important; }
+.month .cell { font-size: 13px; color: var(--faint); }
+.month .cell.done { color: #fff; }
+.month .cell.joker { color: var(--text); }
+.month .cell.off { background: none; opacity: .5; }
+
+/* ---------- Ajustes y formularios ---------- */
+.set-list { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.set-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 14px; min-height: 56px; border-top: 1px solid var(--line); }
+.set-row:first-child { border-top: 0; }
+.set-row .lbl { flex: 1; min-width: 0; }
+.set-row .lbl b { display: block; font-weight: 600; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.set-row .lbl span { display: block; font-size: 13px; color: var(--muted); }
+.set-row .ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; flex: none; background: color-mix(in srgb, var(--c, var(--accent)) 16%, transparent); }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field > label, .field > .lb { font-size: 13px; font-weight: 700; color: var(--muted); }
+.input { width: 100%; min-height: 48px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); padding: 0 12px; font-size: 16px; }
+.input:focus { border-color: var(--accent); outline: none; }
+input[type="time"].input { appearance: none; -webkit-appearance: none; }
+.seg { display: flex; background: var(--surface-2); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { flex: 1; border: 0; background: none; border-radius: 9px; min-height: 42px; font-size: 14px; font-weight: 650; color: var(--muted); padding: 0 6px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.days button { min-height: 44px; border-radius: 11px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; font-size: 13px; padding: 0; }
+.days button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 36px; height: 36px; border-radius: 50%; border: 3px solid transparent; background: var(--c); padding: 0; position: relative; }
+.swatches button::before { content: ""; position: absolute; inset: -6px; }
+.swatches button[aria-pressed="true"] { border-color: var(--surface); box-shadow: 0 0 0 2.5px var(--c); }
+.emojis { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.emojis button { min-height: 40px; border-radius: 10px; border: 0; background: none; font-size: 20px; padding: 0; }
+.emojis button[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper b { min-width: 28px; text-align: center; font-size: 20px; }
+.stepper button { width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); font-size: 22px; font-weight: 600; }
+.switch { position: relative; width: 52px; height: 32px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch i { position: absolute; inset: 0; background: var(--surface-3); border-radius: 99px; transition: background .2s; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s; }
+.switch input:checked + i { background: var(--accent); }
+.switch input:checked + i::after { transform: translateX(20px); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions { display: grid; gap: 8px; margin-top: 18px; }
+.help { font-size: 13px; color: var(--muted); margin: 8px 4px 0; }
+
+/* ---------- Hoja inferior y aviso ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .38); z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-width: 560px; margin: 0 auto; background: var(--bg); border-radius: 22px 22px 0 0; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; padding: 8px var(--gutter) calc(env(safe-area-inset-bottom) + 20px); transform: translateY(105%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+.sheet .grab { width: 40px; height: 5px; border-radius: 9px; background: var(--surface-3); margin: 2px auto 10px; }
+.sheet h2 { font-size: 21px; margin: 0 0 14px; letter-spacing: -.01em; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.open .scrim { opacity: 1; pointer-events: auto; }
+.open .sheet { transform: none; }
+.toast { position: fixed; left: var(--gutter); right: var(--gutter); max-width: 528px; margin: 0 auto; bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 14px); z-index: 50; background: #1C2320; color: #F1F5F0; border-radius: 14px; padding: 6px 6px 6px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); transform: translateY(20px); opacity: 0; pointer-events: none; transition: all .22s; font-size: 15px; }
+.toast.show { transform: none; opacity: 1; pointer-events: auto; }
+.toast button { background: none; border: 0; color: var(--ball); font-weight: 800; min-height: 44px; padding: 0 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+window.RUTINA_DEMO = true;
+(function () {
+'use strict';
+// ---- js/logic.js ----
+// Lógica pura (sin DOM): fechas en la zona de Córdoba, frecuencias, rachas con perdón y semana.
+// Las fechas se manejan como claves 'AAAA-MM-DD' y se calculan en UTC para no depender del reloj del equipo.
+
+const TZ = 'America/Argentina/Cordoba';
+const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DIAS_LARGO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+const fmtCache = {};
+function partes(d, tz) {
+  const f = fmtCache[tz] || (fmtCache[tz] = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }));
+  const o = {};
+  for (const p of f.formatToParts(d)) o[p.type] = p.value;
+  return o;
+}
+
+// Clave del día en la zona elegida (por defecto Córdoba, UTC-3).
+function dateKey(d = new Date(), tz = TZ) {
+  const p = partes(d, tz);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+// Minutos desde la medianoche en la zona elegida.
+function nowMinutes(d = new Date(), tz = TZ) {
+  const p = partes(d, tz);
+  return Number(p.hour) * 60 + Number(p.minute);
+}
+
+function keyToUTC(k) {
+  const [y, m, d] = k.split('-').map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+function utcToKey(ms) {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+function addDays(k, n) {
+  return utcToKey(keyToUTC(k) + n * 86400000);
+}
+function diffDays(a, b) { // b - a en días
+  return Math.round((keyToUTC(b) - keyToUTC(a)) / 86400000);
+}
+function weekday(k) { // 0 = domingo
+  return new Date(keyToUTC(k)).getUTCDay();
+}
+// La semana arranca el lunes.
+function weekStart(k) {
+  return addDays(k, -((weekday(k) + 6) % 7));
+}
+function weekKeys(k) {
+  const s = weekStart(k);
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(s, i));
+}
+function toMin(hhmm) {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+function fromMin(min) {
+  const h = Math.floor(min / 60) % 24, m = min % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+function fechaLarga(k) {
+  const [, m, d] = k.split('-').map(Number);
+  return `${DIAS_LARGO[weekday(k)]} ${d} de ${MESES[m - 1]}`;
+}
+
+// ---------- Frecuencia ----------
+// freq: {type:'daily'} | {type:'days', days:[0..6]} | {type:'times', n}
+function isScheduled(h, k) {
+  if (h.created && k < h.created) return false;
+  const f = h.freq || { type: 'daily' };
+  if (f.type === 'days') return (f.days || []).includes(weekday(k));
+  return true; // daily y times: cualquier día sirve
+}
+function statusOf(log, hid, k) {
+  return (log[k] && log[k][hid]) || null;
+}
+function freqLabel(f) {
+  if (!f || f.type === 'daily') return 'Todos los días';
+  if (f.type === 'times') return f.n === 1 ? '1 vez por semana' : `${f.n} veces por semana`;
+  const d = [...(f.days || [])].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  if (d.length === 7) return 'Todos los días';
+  if (d.length === 5 && !d.includes(0) && !d.includes(6)) return 'Lunes a viernes';
+  return d.map((x) => DIAS[x]).join(' · ');
+}
+
+// Cuántas veces se hizo en la semana de k (opcionalmente solo antes de 'antes').
+function weekCount(log, hid, k, estado = 'done', antes = null) {
+  let n = 0;
+  for (const d of weekKeys(k)) {
+    if (antes && d >= antes) continue;
+    if (statusOf(log, hid, d) === estado) n++;
+  }
+  return n;
+}
+// Meta semanal para 'times': los días de descanso planificado bajan la meta (nunca por debajo de 0).
+function weekTarget(h, log, k) {
+  const n = (h.freq && h.freq.n) || 1;
+  const libres = 7 - weekCount(log, h.id, k, 'skip');
+  return Math.max(0, Math.min(n, libres));
+}
+
+// ¿Aparece hoy en la lista? Los semanales desaparecen cuando ya se cumplió la meta (salvo que se haya hecho hoy).
+function dueOn(h, log, k) {
+  if (h.archived) return false;
+  if (!isScheduled(h, k)) return false;
+  const st = statusOf(log, h.id, k);
+  if (h.freq && h.freq.type === 'times') {
+    if (st) return true;
+    return weekCount(log, h.id, k, 'done', k) < weekTarget(h, log, k);
+  }
+  return true;
+}
+
+// ---------- Rachas con perdón ----------
+// Diario / días fijos: cada día que toca y se hizo suma 1. Descanso planificado no cuenta ni rompe.
+// Un día que se escapa por semana (lunes a domingo) usa el comodín y no corta la racha. El día de hoy, si
+// todavía no se marcó, queda pendiente. Semanales (N veces): la racha se cuenta en semanas cumplidas; si te
+// faltó solo 1 (con meta de 2 o más) usás el comodín de esa semana. La semana en curso y la de alta quedan pendientes.
+function analyze(h, log, today) {
+  const f = h.freq || { type: 'daily' };
+  const created = h.created || today;
+  const jokers = new Set();
+  let run = 0, best = 0;
+  if (f.type === 'times') {
+    const n = f.n || 1;
+    let w = weekStart(created);
+    const cur = weekStart(today);
+    let guard = 0;
+    while (w <= cur && guard++ < 600) {
+      const done = weekCount(log, h.id, w);
+      const target = weekTarget(h, log, w);
+      if (done >= target && target > 0) { run++; best = Math.max(best, run); }
+      else if (target === 0) { /* semana de descanso */ }
+      else if (w === cur || w === weekStart(created)) { /* pendiente o semana de alta */ }
+      else if (n >= 2 && done >= target - 1) { jokers.add(w); }
+      else run = 0;
+      w = addDays(w, 7);
+    }
+    return { current: run, best, unit: 'sem', jokers };
+  }
+  const usedWeek = new Set();
+  let k = created > today ? today : created;
+  const start = diffDays(k, today) > 730 ? addDays(today, -730) : k;
+  k = start;
+  while (k <= today) {
+    if (isScheduled(h, k)) {
+      const st = statusOf(log, h.id, k);
+      if (st === 'done') { run++; best = Math.max(best, run); }
+      else if (st === 'skip') { /* no cuenta */ }
+      else if (k === today) { /* pendiente */ }
+      else {
+        const w = weekStart(k);
+        if (!usedWeek.has(w)) { usedWeek.add(w); jokers.add(k); }
+        else run = 0;
+      }
+    }
+    k = addDays(k, 1);
+  }
+  return { current: run, best, unit: 'd', jokers };
+}
+
+// Estado de una celda para la grilla (sin rojo: lo que no se hizo se ve apagado).
+function cellState(h, log, k, today, info) {
+  if (k > today) return isScheduled(h, k) ? 'future' : 'off';
+  const st = statusOf(log, h.id, k);
+  if (st === 'done') return 'done';
+  if (st === 'skip') return 'skip';
+  if (!isScheduled(h, k)) return 'off';
+  if (h.freq && h.freq.type === 'times') return k === today ? 'pending' : 'open';
+  if (k === today) return 'pending';
+  const a = info || analyze(h, log, today);
+  return a.jokers.has(k) ? 'joker' : 'miss';
+}
+
+// Números de la semana de k: por hábito, hechos y meta (la semana en curso se cuenta hasta hoy).
+function weekStats(habits, log, k, today) {
+  const keys = weekKeys(k);
+  const enCurso = keys.includes(today);
+  const per = [];
+  let sumDone = 0, sumTarget = 0;
+  for (const h of habits) {
+    if (h.archived) continue;
+    if (h.created && h.created > keys[6]) continue;
+    let done = 0, target = 0;
+    if (h.freq && h.freq.type === 'times') {
+      done = weekCount(log, h.id, k);
+      target = weekTarget(h, log, k);
+      if (enCurso) {
+        const transcurridos = diffDays(keys[0], today) + 1;
+        target = Math.min(target, Math.max(Math.ceil(target * transcurridos / 7), Math.min(done, target)));
+      }
+      done = Math.min(done, target);
+    } else {
+      for (const d of keys) {
+        if (d > today || !isScheduled(h, d)) continue;
+        const st = statusOf(log, h.id, d);
+        if (st === 'skip') continue;
+        if (d === today && st !== 'done') continue;
+        target++;
+        if (st === 'done') done++;
+      }
+    }
+    if (target === 0 && done === 0) continue;
+    per.push({ id: h.id, name: h.name, done, target, pct: target ? done / target : 1 });
+    sumDone += done; sumTarget += target;
+  }
+  return { pct: sumTarget ? sumDone / sumTarget : 0, done: sumDone, target: sumTarget, per };
+}
+
+function dayProgress(habits, log, k) {
+  let done = 0, total = 0;
+  for (const h of habits) {
+    if (!dueOn(h, log, k)) continue;
+    const st = statusOf(log, h.id, k);
+    if (st === 'skip') continue;
+    total++;
+    if (st === 'done') done++;
+  }
+  return { done, total };
+}
+
+// Momento del día: el elegido o el que sale de la hora.
+function partOf(h) {
+  if (h.part) return h.part;
+  const m = toMin(h.time);
+  if (m == null) return 'any';
+  if (m < 12 * 60) return 'manana';
+  if (m < 19 * 60) return 'tarde';
+  return 'noche';
+}
+
+// ---------- Agenda ----------
+// Plantilla de clases: [{id, days:[1..5], from:'18:00', to:'21:00', dur:60, club}] → bloques del día.
+function expandClasses(classes, k) {
+  const wd = weekday(k);
+  const out = [];
+  for (const c of classes || []) {
+    if (!(c.days || []).includes(wd)) continue;
+    const dur = Number(c.dur) || 60;
+    const a = toMin(c.from), b = toMin(c.to || c.from) ;
+    for (let m = a; m + dur <= Math.max(b, a + dur); m += dur) {
+      out.push({ kind: 'clase', id: `${c.id}@${m}`, start: m, end: m + dur, title: `Clase · ${c.club} · ${fromMin(m)}`, club: c.club });
+    }
+  }
+  return out.sort((x, y) => x.start - y.start);
+}
+
+// Reparte en carriles los bloques que se pisan.
+function layoutLanes(items) {
+  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
+  const out = [];
+  let group = [], groupEnd = -1;
+  const flush = () => {
+    const lanes = [];
+    for (const it of group) {
+      let i = lanes.findIndex((end) => end <= it.start);
+      if (i === -1) { i = lanes.length; lanes.push(it.end); } else lanes[i] = it.end;
+      it.lane = i;
+    }
+    for (const it of group) { it.lanes = lanes.length; out.push(it); }
+    group = []; groupEnd = -1;
+  };
+  for (const it of sorted) {
+    if (group.length && it.start >= groupEnd) flush();
+    group.push(it);
+    groupEnd = Math.max(groupEnd, it.end);
+  }
+  if (group.length) flush();
+  return out;
+}
+
+// Bloques propios del día: los de esa fecha y los que se repiten ese día de la semana.
+function blocksFor(blocks, k) {
+  const wd = weekday(k);
+  return (blocks || []).filter((b) => (b.date === k || (b.weekly && b.wd === wd && (!b.since || b.since <= k))) && !(b.except || []).includes(k));
+}
+
+// ---- js/store.js ----
+// Datos locales: un solo objeto versionado en localStorage (si no hay, queda en memoria).
+
+// Marca: cambiar acá el nombre si se vende con otra marca.
+const APP = { name: 'Rutina', tagline: 'Tus hábitos y tu día, en un toque', storageKey: 'rutina.datos', schema: 1 };
+
+const COLORES = ['#2F9E62', '#2B7FD9', '#8B5CF6', '#E07B39', '#D94F70', '#C9A227', '#14A3A3', '#6B7280'];
+
+let uid = 0;
+function newId(p = 'x') {
+  return p + Date.now().toString(36) + (uid++).toString(36) + Math.random().toString(36).slice(2, 5);
+}
+
+function defaultHabits(today) {
+  const H = (id, name, icon, color, freq, extra = {}) => ({ id, name, icon, color, freq, time: null, part: null, dur: 30, archived: false, created: today, ...extra });
+  return [
+    H('despertar', 'Despertarme temprano', '⏰', COLORES[5], { type: 'days', days: [1, 2, 3, 4, 5] }, { time: '07:00', dur: 15 }),
+    H('meditar', 'Meditar', '🧘', COLORES[2], { type: 'daily' }, { time: '07:30', dur: 15 }),
+    H('gym', 'Gym', '🏋️', COLORES[3], { type: 'times', n: 3 }, { time: '09:00', dur: 60 }),
+    H('ingles', 'Estudiar inglés', '🗣️', COLORES[1], { type: 'days', days: [1, 2, 3, 4, 5] }, { time: '11:00', dur: 30 }),
+    H('contenido', 'Subir contenido de pádel', '🎾', COLORES[0], { type: 'times', n: 4 }, { part: 'tarde' }),
+    H('correr', 'Salir a correr', '🏃', COLORES[6], { type: 'times', n: 2 }, { part: 'manana' }),
+    H('entrenar', 'Entrenar', '💪', COLORES[4], { type: 'times', n: 3 }, { part: 'tarde' }),
+    H('psicologo', 'Psicólogo', '🧠', COLORES[7], { type: 'days', days: [3] }, { time: '15:00', dur: 60 }),
+    H('comer', 'Comer bien', '🥗', COLORES[0], { type: 'daily' }, { part: 'noche' }),
+    H('dormir', 'Dormir bien', '😴', COLORES[2], { type: 'daily' }, { time: '23:30', dur: 15 }),
+  ];
+}
+
+// Plantilla de ejemplo de clases (hay que revisarla: la grilla real está en la app de clases y pide login).
+function defaultClasses() {
+  return [
+    { id: 'c-la10', days: [1, 2, 3, 4, 5], from: '18:00', to: '21:00', dur: 60, club: 'La 10' },
+    { id: 'c-jump', days: [2, 4], from: '16:30', to: '17:30', dur: 60, club: 'Jump' },
+  ];
+}
+
+function emptyState(today = dateKey()) {
+  return {
+    v: APP.schema,
+    settings: {
+      name: 'Gabi', theme: 'auto', grouping: true,
+      remind: { on: false, morning: '08:00', evening: '21:30', habits: true },
+      classesReviewed: false,
+    },
+    habits: defaultHabits(today),
+    log: {},
+    blocks: [],
+    classes: defaultClasses(),
+    classOff: {},
+  };
+}
+
+// Migraciones: cuando cambie el esquema, se agrega un paso acá.
+function migrate(s) {
+  if (!s || typeof s !== 'object') return null;
+  if (!s.v) s.v = 1;
+  const base = emptyState();
+  s.settings = { ...base.settings, ...(s.settings || {}), remind: { ...base.settings.remind, ...((s.settings || {}).remind || {}) } };
+  s.habits = Array.isArray(s.habits) ? s.habits : base.habits;
+  s.log = s.log && typeof s.log === 'object' ? s.log : {};
+  s.blocks = Array.isArray(s.blocks) ? s.blocks : [];
+  s.classes = Array.isArray(s.classes) ? s.classes : base.classes;
+  s.classOff = s.classOff && typeof s.classOff === 'object' ? s.classOff : {};
+  s.v = APP.schema;
+  return s;
+}
+
+let memoria = null; // si localStorage no anda, los datos viven acá mientras la página esté abierta
+let persistente = true;
+
+function load() {
+  let raw = null;
+  try { raw = localStorage.getItem(APP.storageKey); } catch { persistente = false; }
+  if (raw) {
+    try { const s = migrate(JSON.parse(raw)); if (s) return s; } catch { /* datos rotos: se arranca de cero */ }
+  }
+  return memoria || emptyState();
+}
+
+function save(s) {
+  memoria = s;
+  try { localStorage.setItem(APP.storageKey, JSON.stringify(s)); persistente = true; } catch { persistente = false; }
+}
+
+function exportJSON(s) {
+  return JSON.stringify({ app: APP.name, exportado: new Date().toISOString(), datos: s }, null, 2);
+}
+function importJSON(text) {
+  const o = JSON.parse(text);
+  const s = migrate(o && o.datos ? o.datos : o);
+  if (!s || !Array.isArray(s.habits)) throw new Error('El archivo no es una copia válida');
+  return s;
+}
+
+// Historia de ejemplo (solo para la demo): ~2 semanas creíbles.
+function seedDemo(today = dateKey()) {
+  const s = emptyState(addDays(today, -20));
+  s.settings.classesReviewed = true;
+  let x = 7;
+  const rnd = () => { x = (x * 16807) % 2147483647; return x / 2147483647; };
+  const prob = { despertar: 0.8, meditar: 0.85, gym: 0.55, ingles: 0.7, contenido: 0.6, correr: 0.35, entrenar: 0.5, comer: 0.75, dormir: 0.7, psicologo: 0.95 };
+  for (let i = 16; i >= 1; i--) {
+    const k = addDays(today, -i);
+    const day = (s.log[k] = {});
+    for (const h of s.habits) {
+      const f = h.freq;
+      if (f.type === 'days' && !f.days.includes(weekday(k))) continue;
+      if (weekday(k) === 0 && h.id === 'gym') continue;
+      if (rnd() < prob[h.id]) day[h.id] = 'done';
+      else if (h.id === 'correr' && rnd() < 0.15) day[h.id] = 'skip';
+    }
+  }
+  // Hoy: la mañana ya arrancó
+  s.log[today] = { despertar: 'done', meditar: 'done' };
+  s.blocks = [
+    { id: 'b1', date: today, start: '10:00', end: '11:00', title: 'Editar reel de la liga', color: COLORES[0] },
+    { id: 'b2', date: today, start: '13:00', end: '14:00', title: 'Almuerzo', color: COLORES[5] },
+    { id: 'b3', weekly: true, wd: 1, start: '12:00', end: '12:30', title: 'Pagar canchas a Gonza', color: COLORES[3] },
+  ];
+  return s;
+}
+
+// ---- js/main.js ----
+// Rutina — pantalla y acciones. Sin librerías: todo se dibuja con plantillas y un solo manejador de toques.
+
+const DEMO = typeof window !== 'undefined' && !!window.RUTINA_DEMO;
+if (DEMO) APP.storageKey = 'rutina.demo';
+
+let S = load();
+if (DEMO && !hasStored()) S = seedDemo(dateKey());
+function hasStored() { try { return !!localStorage.getItem(APP.storageKey); } catch { return false; } }
+
+const ui = { tab: 'hoy', day: dateKey(), week: dateKey(), pop: null, ringPrev: 0, scrollNow: true, month: null };
+const today = () => dateKey();
+const habitsActive = () => S.habits.filter((h) => !h.archived);
+const byId = (id) => S.habits.find((h) => h.id === id);
+const commit = () => save(S);
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ---------- Íconos (trazos propios) ----------
+const I = {
+  hoy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/></svg>',
+  agenda: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h3"/></svg>',
+  semana: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>',
+  ajustes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',
+  mas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  izq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  der: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg>',
+  abajo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10l6 6 6-6"/></svg>',
+  puntos: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg>',
+  cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  tilde: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+};
+const EMOJIS = ['🧘', '🏋️', '🧠', '🗣️', '🎾', '🏃', '💪', '🥗', '😴', '⏰', '📚', '💧', '🚴', '🏊', '🧴', '📖', '✍️', '🙏', '🍎', '📵', '🧹', '💰', '🎯', '📞'];
+const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], ['any', 'Cuando puedas']];
+
+// ---------- Armado ----------
+const root = document.getElementById('app');
+root.innerHTML = `
+  <main class="wrap" id="view"></main>
+  <nav class="tabs" aria-label="Secciones">
+    ${[['hoy', 'Hoy'], ['agenda', 'Agenda'], ['semana', 'Semana'], ['ajustes', 'Ajustes']].map(([t, n]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[t]}<span>${n}</span></button>`).join('')}
+  </nav>
+  <button class="btn primary fab" data-act="newBlock" hidden>${I.mas}<span>Bloque</span></button>
+  <div class="scrim" data-act="closeSheet"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true"></section>
+  <div class="toast" id="toast" role="status"><span></span><button data-act="undo">Deshacer</button></div>`;
+const view = document.getElementById('view');
+const sheet = document.getElementById('sheet');
+
+function applyTheme() {
+  const t = S.settings.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else document.documentElement.removeAttribute('data-theme');
+}
+
+function render() {
+  applyTheme();
+  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === ui.tab ? 'page' : 'false'));
+  document.querySelector('.fab').hidden = ui.tab !== 'agenda';
+  view.innerHTML = ({ hoy: renderHoy, agenda: renderAgenda, semana: renderSemana, ajustes: renderAjustes })[ui.tab]();
+  if (ui.tab === 'hoy') animateRing();
+  if (ui.tab === 'agenda' && ui.scrollNow) {
+    ui.scrollNow = false;
+    const el = view.querySelector('.now') || view.querySelector('.ev');
+    if (el) window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 220) });
+  }
+  ui.pop = null;
+}
+
+// ---------- HOY ----------
+function saludo() {
+  const m = nowMinutes();
+  const n = S.settings.name ? `, ${esc(S.settings.name)}` : '';
+  if (m < 5 * 60) return `Buenas noches${n}`;
+  if (m < 12 * 60 + 30) return `Buen día${n}`;
+  if (m < 20 * 60) return `Buenas tardes${n}`;
+  return `Buenas noches${n}`;
+}
+
+function habitMeta(h, k) {
+  const st = statusOf(S.log, h.id, k);
+  const a = analyze(h, S.log, today());
+  const out = [];
+  if (h.time) out.push(`<span class="num">${h.time}</span>`);
+  if (h.freq.type === 'times') out.push(`<span class="num">${weekCount(S.log, h.id, k)}/${weekTarget(h, S.log, k)} esta semana</span>`);
+  else if (h.freq.type === 'days' && h.freq.days.length < 5) out.push(`<span>${freqLabel(h.freq)}</span>`);
+  if (st === 'skip') out.push('<span>Descanso</span>');
+  else if (a.current >= 2) out.push(`<span class="st num">🔥 ${a.current}${a.unit === 'sem' ? ' sem' : ''}</span>`);
+  return out.join('');
+}
+
+function habitRow(h, k) {
+  const st = statusOf(S.log, h.id, k) || '';
+  const pop = ui.pop === h.id ? ' pop' : '';
+  return `<div class="habit ${st}${pop}" style="--c:${h.color}">
+    <button class="tap" data-act="toggle" data-id="${h.id}" aria-pressed="${st === 'done'}">
+      <span class="ico" aria-hidden="true">${h.icon || '•'}</span>
+      <span class="txt"><span class="name">${esc(h.name)}</span><span class="meta">${habitMeta(h, k)}</span></span>
+      <span class="check" aria-hidden="true">${I.tilde}</span>
+    </button>
+    <button class="icon-btn more" data-act="habitMenu" data-id="${h.id}" aria-label="Opciones de ${esc(h.name)}">${I.puntos}</button>
+  </div>`;
+}
+
+function sortHabits(list) {
+  const idx = (h) => S.habits.indexOf(h);
+  return [...list].sort((a, b) => (toMin(a.time) ?? 9999) - (toMin(b.time) ?? 9999) || idx(a) - idx(b));
+}
+
+function ringSVG(done, total) {
+  const C = 2 * Math.PI * 44;
+  const pct = total ? done / total : 0;
+  ui.ringTarget = C * (1 - pct);
+  const from = ui.ringPrev ?? C;
+  return `<div class="ring" role="img" aria-label="${done} de ${total} hábitos hechos">
+    <svg viewBox="0 0 104 104"><circle class="bgc" cx="52" cy="52" r="44" fill="none" stroke-width="10"/>
+    <circle class="fgc" cx="52" cy="52" r="44" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${from}"/></svg>
+    <div class="lbl"><div><b class="num">${done}/${total}</b><span>hoy</span></div></div></div>`;
+}
+function animateRing() {
+  const c = view.querySelector('.fgc');
+  if (!c) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => { c.style.strokeDashoffset = ui.ringTarget; }));
+  ui.ringPrev = ui.ringTarget;
+}
+
+function nextItem(k) {
+  const m = nowMinutes();
+  return agendaItems(k).filter((x) => !x.off && !x.done).find((x) => x.end > m);
+}
+
+function renderHoy() {
+  const k = today();
+  ui.day = ui.day || k;
+  const due = habitsActive().filter((h) => dueOn(h, S.log, k));
+  const other = habitsActive().filter((h) => !dueOn(h, S.log, k));
+  const p = dayProgress(S.habits, S.log, k);
+  const falta = p.total - p.done;
+  const titulo = p.total === 0 ? 'Hoy no hay nada pendiente' : falta === 0 ? 'Día completo. Bien ahí.' : falta === 1 ? 'Te falta 1' : `Te faltan ${falta}`;
+  const sub = p.total === 0 ? 'Disfrutá el descanso.' : falta === 0 ? 'Mañana seguimos.' : 'Un toque y listo.';
+  const nx = nextItem(k);
+  const m = nowMinutes();
+  const nextHTML = nx ? `<div class="next"><i style="background:${nx.color}"></i><span>${nx.start <= m ? 'Ahora' : fromMin(nx.start)} · ${esc(nx.label)}</span></div>` : '';
+
+  let lista = '';
+  if (!due.length) lista = `<div class="card empty"><b>Nada por hoy</b>Usá “Otros hábitos” si querés sumar algo extra.</div>`;
+  else if (S.settings.grouping) {
+    for (const [pk, pn] of PARTES) {
+      const g = sortHabits(due.filter((h) => partOf(h) === pk));
+      if (!g.length) continue;
+      const d = g.filter((h) => statusOf(S.log, h.id, k) === 'done').length;
+      lista += `<div class="section-t">${pn}<small class="num">${d}/${g.length}</small></div><div class="list">${g.map((h) => habitRow(h, k)).join('')}</div>`;
+    }
+  } else lista = `<div class="list" style="margin-top:16px">${sortHabits(due).map((h) => habitRow(h, k)).join('')}</div>`;
+
+  const wd = weekday(k);
+  const resumen = wd === 0 ? summaryCard(k, 'Cierre de la semana') : wd === 1 ? summaryCard(addDays(k, -7), 'Tu semana pasada') : '';
+
+  return `<header class="head"><div><div class="eyebrow">${cap(fechaLarga(k))}</div><h1>${saludo()}</h1></div><div class="brand">${esc(APP.name)}</div></header>
+  <section class="card hero">${ringSVG(p.done, p.total)}<div class="grow"><h2>${titulo}</h2><p>${sub}</p>${nextHTML}</div></section>
+  ${resumen}
+  ${lista}
+  ${other.length ? `<details class="other"><summary>Otros hábitos (hoy no tocan) · ${other.length}${I.abajo}</summary><div class="list">${sortHabits(other).map((h) => habitRow(h, k)).join('')}</div></details>` : ''}
+  ${persistente ? '' : '<p class="help">Ojo: este navegador no deja guardar datos. Lo que marques se pierde al cerrar.</p>'}`;
+}
+
+function summaryCard(k, titulo) {
+  const s = weekStats(S.habits, S.log, k, today());
+  if (!s.target) return '';
+  const pct = Math.round(s.pct * 100);
+  const orden = [...s.per].sort((a, b) => b.pct - a.pct || b.done - a.done);
+  const mejor = orden[0];
+  const ajustar = [...s.per].sort((a, b) => a.pct - b.pct).find((x) => x.pct < 0.6 && x.id !== mejor.id);
+  let racha = null;
+  for (const h of habitsActive()) { const a = analyze(h, S.log, today()); if (!racha || a.current > racha.a.current) racha = { h, a }; }
+  const frase = pct >= 85 ? 'Semana enorme.' : pct >= 65 ? 'Buena semana, sostenela.' : pct >= 40 ? 'Vas armando la base.' : 'Semana difícil. Se arranca de nuevo, sin culpa.';
+  return `<section class="card summary"><h3>${titulo}</h3>
+    <div class="row"><div class="big num">${pct}%</div><div class="grow"><div class="muted tiny">${frase}</div><div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div></div></div>
+    <ul>
+      <li>💚 Lo mejor: <b>${esc(mejor.name)}</b> <span class="num muted">${mejor.done}/${mejor.target}</span></li>
+      ${ajustar ? `<li>🎯 Para la próxima: <b>${esc(ajustar.name)}</b> <span class="num muted">${ajustar.done}/${ajustar.target}</span></li>` : ''}
+      ${racha && racha.a.current >= 2 ? `<li>🔥 Racha más larga: <b>${esc(racha.h.name)}</b> <span class="num muted">${racha.a.current} ${racha.a.unit === 'sem' ? 'semanas' : 'días'}</span></li>` : ''}
+    </ul></section>`;
+}
+
+// ---------- AGENDA ----------
+function agendaItems(k) {
+  const items = [];
+  const off = !!S.classOff[k];
+  for (const c of expandClasses(S.classes, k)) items.push({ ...c, kind: 'clase', color: '#8FB21C', label: c.title, off });
+  for (const h of habitsActive()) {
+    if (!h.time || !dueOn(h, S.log, k)) continue;
+    const st = statusOf(S.log, h.id, k);
+    if (st === 'skip') continue;
+    const s = toMin(h.time);
+    items.push({ kind: 'habito', id: h.id, start: s, end: s + (Number(h.dur) || 30), color: h.color, label: `${h.icon || ''} ${h.name}`.trim(), done: st === 'done' });
+  }
+  for (const b of blocksFor(S.blocks, k)) {
+    const s = toMin(b.start), e = Math.max(toMin(b.end) || 0, s + 15);
+    items.push({ kind: 'bloque', id: b.id, start: s, end: e, color: b.color, label: b.title, weekly: b.weekly });
+  }
+  return items.sort((a, b) => a.start - b.start);
+}
+
+function diaNombre(k) {
+  const d = diffDays(today(), k);
+  if (d === 0) return 'Hoy';
+  if (d === 1) return 'Mañana';
+  if (d === -1) return 'Ayer';
+  return cap(DIAS_LARGO[weekday(k)]);
+}
+
+function renderAgenda() {
+  const k = ui.day;
+  const items = layoutLanes(agendaItems(k));
+  const PX = 64;
+  let h0 = 7, h1 = 23;
+  for (const it of items) { h0 = Math.min(h0, Math.floor(it.start / 60)); h1 = Math.max(h1, Math.ceil(it.end / 60)); }
+  h1 = Math.min(h1, 24);
+  const y = (min) => ((min - h0 * 60) / 60) * PX;
+  let rows = '';
+  for (let h = h0; h <= h1; h++) {
+    rows += `<div class="tl-hour" style="top:${(h - h0) * PX}px"><span>${String(h % 24).padStart(2, '0')}:00</span></div>`;
+    if (h < h1) rows += `<button class="tl-slot" style="top:${(h - h0) * PX}px;height:${PX}px" data-act="newBlock" data-h="${h}" aria-label="Nuevo bloque a las ${h}"></button>`;
+  }
+  const evs = items.map((it) => {
+    const top = y(it.start), hgt = Math.max(24, y(it.end) - top - 2);
+    const short = hgt < 42;
+    const w = 100 / it.lanes;
+    const cls = ['ev', it.kind === 'clase' ? 'clase' : '', it.kind === 'habito' ? 'habito' : '', it.done ? 'hecho' : '', it.off ? 'off' : '', short ? 'short' : ''].join(' ');
+    const act = it.kind === 'clase' ? 'classMenu' : it.kind === 'habito' ? 'habitMenu' : 'editBlock';
+    const hora = `${fromMin(it.start)}–${fromMin(it.end)}`;
+    return `<button class="${cls}" style="--c:${it.color};top:${top}px;height:${hgt}px;left:calc(${it.lane * w}% + 2px);width:calc(${w}% - 6px)" data-act="${act}" data-id="${esc(it.id)}">
+      <b>${esc(it.label)}${it.off ? ' (suspendida)' : ''}</b><span class="num">${short ? fromMin(it.start) : hora}${it.weekly && !short ? ' · se repite' : ''}</span></button>`;
+  }).join('');
+  const nowLine = k === today() && nowMinutes() >= h0 * 60 && nowMinutes() <= h1 * 60 ? `<div class="now" style="top:${y(nowMinutes())}px"></div>` : '';
+  const clases = expandClasses(S.classes, k);
+  const off = !!S.classOff[k];
+  return `<header class="head"><div><div class="eyebrow">Agenda del día</div><h1>${diaNombre(k)}</h1></div><div class="brand">${esc(APP.name)}</div></header>
+    <div class="daynav"><button class="icon-btn" data-act="day" data-d="-1" aria-label="Día anterior">${I.izq}</button>
+      <button class="lbl" data-act="day" data-d="0">${cap(fechaLarga(k))}<small>${k === today() ? 'Hoy' : 'Volver a hoy'}</small></button>
+      <button class="icon-btn" data-act="day" data-d="1" aria-label="Día siguiente">${I.der}</button></div>
+    ${S.settings.classesReviewed ? '' : `<div class="notice"><p>Tus clases son <b>de ejemplo</b>. Cargá tus horarios reales una vez y quedan para todas las semanas.</p><button class="btn sm primary" data-act="classes">Cargar</button></div>`}
+    <div class="chips">
+      ${clases.length ? `<span class="chip"><i style="background:#8FB21C"></i>${clases.length} ${clases.length === 1 ? 'clase' : 'clases'}</span>
+        <button class="chip ${off ? 'on' : ''}" data-act="toggleOff">${off ? 'Sin clases este día · Reactivar' : 'Suspender clases'}</button>` : '<span class="chip">Sin clases este día</span>'}
+      <button class="chip" data-act="classes">Mis clases</button>
+    </div>
+    <div class="timeline"><div class="tl-inner" style="height:${(h1 - h0) * PX}px">${rows}${evs}${nowLine}</div></div>
+    <p class="help">Tocá un horario vacío para agregar un bloque. Los hábitos con hora aparecen punteados.</p>`;
+}
+
+// ---------- SEMANA ----------
+function weekLabel(k) {
+  const ks = weekKeys(k);
+  const [, m1, d1] = ks[0].split('-').map(Number), [, m2, d2] = ks[6].split('-').map(Number);
+  return m1 === m2 ? `${d1} al ${d2} de ${MESES[m2 - 1]}` : `${d1} de ${MESES[m1 - 1]} al ${d2} de ${MESES[m2 - 1]}`;
+}
+
+function renderSemana() {
+  const k = ui.week, t = today();
+  const ks = weekKeys(k);
+  const enCurso = ks.includes(t);
+  const hs = habitsActive().filter((h) => !h.created || h.created <= ks[6]);
+  const head = `<span></span>${ks.map((d) => `<span class="hd ${d === t ? 'hoy' : ''}">${DIAS[weekday(d)].charAt(0)}<br>${Number(d.slice(8))}</span>`).join('')}`;
+  const rows = hs.map((h) => {
+    const a = analyze(h, S.log, t);
+    return `<span class="hn"><span aria-hidden="true">${h.icon}</span><span>${esc(h.name)}</span></span>` +
+      ks.map((d) => `<span class="cell ${cellState(h, S.log, d, t, a)}" style="--c:${h.color}" title="${d}"></span>`).join('');
+  }).join('');
+  const streaks = sortHabits(hs).sort((a, b) => analyze(b, S.log, t).current - analyze(a, S.log, t).current).map((h) => {
+    const a = analyze(h, S.log, t);
+    const u = a.unit === 'sem' ? (a.current === 1 ? 'semana' : 'semanas') : (a.current === 1 ? 'día' : 'días');
+    return `<button class="streak" style="--c:${h.color}" data-act="month" data-id="${h.id}"><span class="ico">${h.icon}</span>
+      <span class="grow"><b>${esc(h.name)}</b><br><span class="muted tiny">${freqLabel(h.freq)} · mejor: <span class="num">${a.best}</span></span></span>
+      <span class="val"><b class="num">${a.current ? '🔥 ' : ''}${a.current}</b><span>${u}</span></span></button>`;
+  }).join('');
+  return `<header class="head"><div><div class="eyebrow">Rachas y semana</div><h1>${enCurso ? 'Esta semana' : 'Semana'}</h1></div><div class="brand">${esc(APP.name)}</div></header>
+    <div class="daynav weeknav"><button class="icon-btn" data-act="week" data-d="-7" aria-label="Semana anterior">${I.izq}</button>
+      <button class="lbl" data-act="week" data-d="0">${cap(weekLabel(k))}<small>${enCurso ? 'En curso' : 'Volver a esta semana'}</small></button>
+      <button class="icon-btn" data-act="week" data-d="7" aria-label="Semana siguiente" ${enCurso ? 'disabled style="opacity:.3"' : ''}>${I.der}</button></div>
+    ${summaryCard(k, enCurso ? (weekday(t) === 0 ? 'Cierre de la semana' : 'Cómo va la semana') : 'Resumen de la semana') || '<div class="card empty"><b>Sin datos esta semana</b>Marcá tus hábitos en Hoy.</div>'}
+    <section class="card"><div class="grid">${head}${rows}</div>
+      <div class="legend"><span><i class="cell done"></i>Hecho</span><span><i class="cell joker"></i>Comodín</span><span><i class="cell skip"></i>Descanso</span><span><i class="cell miss"></i>Sin marcar</span></div></section>
+    <div class="section-t">Rachas<small>1 comodín por semana: un día malo no te corta</small></div>
+    <div class="streaks">${streaks}</div>`;
+}
+
+function monthSheet(id) {
+  const h = byId(id); if (!h) return;
+  const t = today();
+  const ym = ui.month || t.slice(0, 7);
+  const first = `${ym}-01`;
+  const [y, m] = ym.split('-').map(Number);
+  const dias = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const lead = (weekday(first) + 6) % 7;
+  const a = analyze(h, S.log, t);
+  let cells = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d) => `<span class="hd" style="text-align:center;font-size:12px;color:var(--faint);font-weight:700">${d}</span>`).join('');
+  cells += '<span class="cell empty"></span>'.repeat(lead);
+  let hechos = 0;
+  for (let i = 0; i < dias; i++) {
+    const d = addDays(first, i);
+    const st = cellState(h, S.log, d, t, a);
+    if (st === 'done') hechos++;
+    cells += `<span class="cell ${st}" style="--c:${h.color}" title="${d}">${i + 1}</span>`;
+  }
+  const prev = addDays(first, -1).slice(0, 7), next = addDays(first, 32).slice(0, 7);
+  openSheet(`<h2><span>${h.icon} ${esc(h.name)}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <div class="two" style="margin-bottom:14px"><div class="card" style="margin:0"><div class="muted tiny">Racha</div><b class="num" style="font-size:24px">${a.current} ${a.unit === 'sem' ? 'sem' : 'd'}</b></div>
+      <div class="card" style="margin:0"><div class="muted tiny">Mejor racha</div><b class="num" style="font-size:24px">${a.best} ${a.unit === 'sem' ? 'sem' : 'd'}</b></div></div>
+    <div class="daynav"><button class="icon-btn" data-act="monthNav" data-id="${id}" data-m="${prev}" aria-label="Mes anterior">${I.izq}</button>
+      <span class="lbl" style="display:grid;place-items:center">${cap(MESES[m - 1])} ${y}<small class="num">${hechos} ${hechos === 1 ? 'vez' : 'veces'}</small></span>
+      <button class="icon-btn" data-act="monthNav" data-id="${id}" data-m="${next}" aria-label="Mes siguiente" ${ym >= t.slice(0, 7) ? 'disabled style="opacity:.3"' : ''}>${I.der}</button></div>
+    <div class="card"><div class="month">${cells}</div></div>
+    <p class="help">${freqLabel(h.freq)}. Los días sin marcar se ven apagados, no en rojo: lo importante es volver.</p>`);
+}
+
+// ---------- AJUSTES ----------
+function renderAjustes() {
+  const r = S.settings.remind;
+  const act = S.habits.filter((h) => !h.archived), arch = S.habits.filter((h) => h.archived);
+  const hrow = (h, i, n) => `<div class="set-row" style="--c:${h.color}"><span class="ico">${h.icon}</span>
+      <span class="lbl"><b>${esc(h.name)}</b><span>${freqLabel(h.freq)}${h.time ? ' · ' + h.time : ''}</span></span>
+      <button class="icon-btn" data-act="move" data-id="${h.id}" data-d="-1" aria-label="Subir" ${i === 0 ? 'disabled style="opacity:.25"' : ''}>${I.arriba}</button>
+      <button class="icon-btn" data-act="move" data-id="${h.id}" data-d="1" aria-label="Bajar" ${i === n - 1 ? 'disabled style="opacity:.25"' : ''}>${I.abajo}</button>
+      <button class="icon-btn" data-act="editHabit" data-id="${h.id}" aria-label="Editar">${I.puntos}</button></div>`;
+  const notif = typeof Notification === 'undefined' ? 'no' : Notification.permission;
+  const notifTxt = notif === 'granted' ? 'Permiso dado' : notif === 'denied' ? 'Bloqueados en este navegador' : notif === 'no' ? 'Este navegador no los permite' : 'Falta dar permiso';
+  return `<header class="head"><div><div class="eyebrow">Tu ${esc(APP.name)}</div><h1>Ajustes</h1></div><div class="brand">${esc(APP.name)}</div></header>
+    <div class="section-t">Hábitos<small class="num">${act.length} activos</small></div>
+    <div class="set-list">${act.map((h, i) => hrow(h, i, act.length)).join('')}</div>
+    <button class="btn block" style="margin-top:8px" data-act="newHabit">${I.mas} Nuevo hábito</button>
+    <p class="help">Consejo: con 5 o 6 hábitos activos se sostiene mejor. Los que no uses, archivalos.</p>
+    ${arch.length ? `<div class="section-t">Archivados</div><div class="set-list">${arch.map((h) => `<div class="set-row" style="--c:${h.color}"><span class="ico">${h.icon}</span><span class="lbl"><b>${esc(h.name)}</b></span><button class="btn sm ghost" data-act="unarchive" data-id="${h.id}">Recuperar</button></div>`).join('')}</div>` : ''}
+
+    <div class="section-t">Mis clases</div>
+    <div class="set-list">${S.classes.map((c) => `<div class="set-row" style="--c:#8FB21C"><span class="ico">🎾</span><span class="lbl"><b>${esc(c.club)}</b><span>${freqLabel({ type: 'days', days: c.days })} · ${c.from} a ${c.to}</span></span><button class="icon-btn" data-act="editClass" data-id="${c.id}" aria-label="Editar">${I.puntos}</button></div>`).join('') || '<div class="set-row"><span class="lbl muted">Sin clases cargadas</span></div>'}</div>
+    <button class="btn block" style="margin-top:8px" data-act="editClass">${I.mas} Agregar horario de clases</button>
+
+    <div class="section-t">Recordatorios</div>
+    <div class="set-list">
+      <label class="set-row"><span class="lbl"><b>Avisos</b><span>${notifTxt}</span></span><span class="switch"><input type="checkbox" data-set="remind.on" ${r.on ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row"><span class="lbl"><b>Mañana</b><span>Qué toca hoy</span></span><input class="input" style="width:120px" type="time" data-set="remind.morning" value="${r.morning}"></div>
+      <div class="set-row"><span class="lbl"><b>Noche</b><span>Lo que te falta</span></span><input class="input" style="width:120px" type="time" data-set="remind.evening" value="${r.evening}"></div>
+      <label class="set-row"><span class="lbl"><b>A la hora de cada hábito</b><span>Solo los que tienen hora</span></span><span class="switch"><input type="checkbox" data-set="remind.habits" ${r.habits ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row"><button class="btn sm" data-act="testNotif">Probar aviso</button><button class="btn sm ghost" data-act="ics">Pasarlos al calendario</button></div>
+    </div>
+    <p class="help">En iPhone los avisos solo andan con la app instalada (Compartir → Agregar a inicio) y abierta desde el ícono. Para que suenen siempre, aunque la app esté cerrada, usá “Pasarlos al calendario”: se agregan como eventos con alarma.</p>
+
+    <div class="section-t">Preferencias</div>
+    <div class="set-list">
+      <div class="set-row"><span class="lbl"><b>Tu nombre</b></span><input class="input" style="width:150px" data-set="name" value="${esc(S.settings.name)}" maxlength="20" autocomplete="given-name"></div>
+      <label class="set-row"><span class="lbl"><b>Agrupar por momento</b><span>Mañana, tarde y noche</span></span><span class="switch"><input type="checkbox" data-set="grouping" ${S.settings.grouping ? 'checked' : ''}><i></i></span></label>
+      <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
+    </div>
+
+    <div class="section-t">Copia de seguridad</div>
+    <div class="set-list"><div class="set-row"><button class="btn sm" data-act="export">Exportar</button><label class="btn sm ghost">Importar<input type="file" accept="application/json,.json" data-set="import" class="sr"></label></div></div>
+    <p class="help">Tus datos quedan solo en este teléfono. Exportá una copia cada tanto.</p>
+    ${DEMO ? '<div class="set-list" style="margin-top:14px"><div class="set-row"><span class="lbl"><b>Demo</b><span>Volver a los datos de ejemplo</span></span><button class="btn sm danger" data-act="resetDemo">Reiniciar</button></div></div>' : ''}
+    <p class="help" style="text-align:center;margin-top:24px">${esc(APP.name)} · ${esc(APP.tagline)}</p>`;
+}
+
+// ---------- Hojas ----------
+function openSheet(html) {
+  sheet.innerHTML = '<div class="grab"></div>' + html;
+  sheet.scrollTop = 0;
+  document.body.classList.add('open');
+}
+function closeSheet() { document.body.classList.remove('open'); ui.month = null; }
+
+const pressed = (group) => [...sheet.querySelectorAll(`[data-group="${group}"] [aria-pressed="true"]`)].map((b) => b.dataset.v);
+const segHTML = (group, opts, val) => `<div class="seg" data-group="${group}">${opts.map(([v, n]) => `<button type="button" data-pick="${v}" data-v="${v}" aria-pressed="${String(v) === String(val)}">${n}</button>`).join('')}</div>`;
+const daysHTML = (group, days) => `<div class="days" data-group="${group}" data-multi="1">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" data-pick="${d}" data-v="${d}" aria-pressed="${days.includes(d)}" aria-label="${DIAS_LARGO[d]}">${DIAS[d].charAt(0)}</button>`).join('')}</div>`;
+const swHTML = (val) => `<div class="swatches" data-group="color">${COLORES.map((c) => `<button type="button" data-pick="${c}" data-v="${c}" style="--c:${c}" aria-pressed="${c === val}" aria-label="Color"></button>`).join('')}</div>`;
+
+function habitMenu(id, k = today()) {
+  const h = byId(id); if (!h) return;
+  const st = statusOf(S.log, id, k);
+  const cuando = k === today() ? 'hoy' : diaNombre(k).toLowerCase();
+  openSheet(`<h2><span>${h.icon} ${esc(h.name)}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <p class="muted" style="margin-top:-8px">${freqLabel(h.freq)}${h.time ? ' · ' + h.time : ''}</p>
+    <div class="actions">
+      <button class="btn primary block" data-act="setStatus" data-id="${id}" data-k="${k}" data-v="${st === 'done' ? '' : 'done'}">${st === 'done' ? 'Desmarcar' : `Hecho ${cuando}`}</button>
+      <button class="btn block" data-act="setStatus" data-id="${id}" data-k="${k}" data-v="${st === 'skip' ? '' : 'skip'}">${st === 'skip' ? 'Quitar descanso' : `Descanso ${cuando} (no cuenta)`}</button>
+      <button class="btn block" data-act="month" data-id="${id}">Ver calendario y racha</button>
+      <button class="btn ghost block" data-act="editHabit" data-id="${id}">Editar hábito</button>
+    </div>`);
+}
+
+function habitForm(id) {
+  const h = id ? byId(id) : { name: '', icon: '🎯', color: COLORES[0], freq: { type: 'daily' }, time: null, part: null, dur: 30 };
+  const f = h.freq;
+  openSheet(`<h2><span>${id ? 'Editar hábito' : 'Nuevo hábito'}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <form id="fHabit" data-id="${id || ''}">
+      <div class="field"><label for="hName">Nombre</label><input class="input" id="hName" value="${esc(h.name)}" maxlength="40" required placeholder="Ej.: Estirar 10 minutos"></div>
+      <div class="field"><span class="lb">Ícono</span><div class="emojis" data-group="icon">${EMOJIS.map((e) => `<button type="button" data-pick="${e}" data-v="${e}" aria-pressed="${e === h.icon}">${e}</button>`).join('')}</div></div>
+      <div class="field"><span class="lb">Color</span>${swHTML(h.color)}</div>
+      <div class="field"><span class="lb">Frecuencia</span>${segHTML('freq', [['daily', 'Todos los días'], ['days', 'Días fijos'], ['times', 'Veces x sem.']], f.type)}</div>
+      <div class="field" data-show="days" ${f.type === 'days' ? '' : 'hidden'}><span class="lb">Qué días</span>${daysHTML('days', f.type === 'days' ? f.days : [1, 2, 3, 4, 5])}</div>
+      <div class="field" data-show="times" ${f.type === 'times' ? '' : 'hidden'}><span class="lb">Cuántas veces por semana</span>
+        <div class="stepper"><button type="button" data-act="step" data-d="-1" aria-label="Menos">−</button><b class="num" id="hN">${f.type === 'times' ? f.n : 3}</b><button type="button" data-act="step" data-d="1" aria-label="Más">+</button></div></div>
+      <div class="two"><div class="field"><label for="hTime">Hora (opcional)</label><input class="input" id="hTime" type="time" value="${h.time || ''}"></div>
+        <div class="field"><label for="hDur">Duración</label><select class="input" id="hDur">${[10, 15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${Number(h.dur) === m ? 'selected' : ''}>${m < 60 ? m + ' min' : m / 60 + ' h'}</option>`).join('')}</select></div></div>
+      <div class="field"><span class="lb">Momento del día</span>${segHTML('part', [['', 'Auto'], ['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche']], h.part || '')}</div>
+      <p class="help" style="margin-top:-6px">Con hora, aparece en la agenda y te puede avisar.</p>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
+        ${id ? `<button class="btn block" type="button" data-act="archive" data-id="${id}">Archivar (guarda la historia)</button><button class="btn danger block" type="button" data-act="delHabit" data-id="${id}">Borrar para siempre</button>` : ''}</div>
+    </form>`);
+}
+
+function saveHabit(form) {
+  const id = form.dataset.id;
+  const name = form.querySelector('#hName').value.trim();
+  if (!name) { form.querySelector('#hName').focus(); return; }
+  const type = pressed('freq')[0] || 'daily';
+  const freq = type === 'days' ? { type, days: pressed('days').map(Number) } : type === 'times' ? { type, n: Number(form.querySelector('#hN').textContent) } : { type: 'daily' };
+  if (type === 'days' && !freq.days.length) { toast('Elegí al menos un día'); return; }
+  const data = { name, icon: pressed('icon')[0] || '🎯', color: pressed('color')[0] || COLORES[0], freq, time: form.querySelector('#hTime').value || null, dur: Number(form.querySelector('#hDur').value) || 30, part: pressed('part')[0] || null };
+  if (id) Object.assign(byId(id), data);
+  else S.habits.push({ id: newId('h'), archived: false, created: today(), ...data });
+  commit(); closeSheet(); render(); toast(id ? 'Hábito actualizado' : 'Hábito agregado');
+}
+
+function blockForm(id, hour) {
+  const b = id ? S.blocks.find((x) => x.id === id) : { title: '', start: fromMin((hour ?? Math.min(23, Math.floor(nowMinutes() / 60) + 1)) * 60), end: fromMin(Math.min(23 * 60 + 59, ((hour ?? Math.floor(nowMinutes() / 60) + 1) + 1) * 60)), color: COLORES[1], weekly: false };
+  if (!b) return;
+  const dn = DIAS_LARGO[b.weekly ? b.wd : weekday(ui.day)];
+  openSheet(`<h2><span>${id ? 'Editar bloque' : 'Nuevo bloque'}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <form id="fBlock" data-id="${id || ''}">
+      <div class="field"><label for="bTitle">Qué</label><input class="input" id="bTitle" value="${esc(b.title)}" maxlength="50" required placeholder="Ej.: Grabar reel" enterkeyhint="done"></div>
+      <div class="two"><div class="field"><label for="bStart">Desde</label><input class="input" id="bStart" type="time" value="${b.start}" required></div>
+        <div class="field"><label for="bEnd">Hasta</label><input class="input" id="bEnd" type="time" value="${b.end}" required></div></div>
+      <div class="field"><span class="lb">Color</span>${swHTML(b.color)}</div>
+      <label class="set-row" style="padding:0 2px;border:0"><span class="lbl"><b>Repetir todos los ${dn}</b></span><span class="switch"><input type="checkbox" id="bWeekly" ${b.weekly ? 'checked' : ''}><i></i></span></label>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
+        ${id && b.weekly ? `<button class="btn block" type="button" data-act="delBlock" data-id="${id}" data-only="1">Borrar solo este día</button>` : ''}
+        ${id ? `<button class="btn danger block" type="button" data-act="delBlock" data-id="${id}">${b.weekly ? 'Borrar todas las semanas' : 'Borrar'}</button>` : ''}</div>
+    </form>`);
+  if (!id) setTimeout(() => sheet.querySelector('#bTitle')?.focus(), 300);
+}
+
+function saveBlock(form) {
+  const id = form.dataset.id;
+  const title = form.querySelector('#bTitle').value.trim();
+  if (!title) { form.querySelector('#bTitle').focus(); return; }
+  const start = form.querySelector('#bStart').value;
+  let end = form.querySelector('#bEnd').value;
+  if (!end || toMin(end) <= toMin(start)) end = fromMin(Math.min(23 * 60 + 59, toMin(start) + 30));
+  const weekly = form.querySelector('#bWeekly').checked;
+  const data = { title, start, end, color: pressed('color')[0] || COLORES[1], weekly };
+  if (weekly) { data.wd = id ? (S.blocks.find((x) => x.id === id).wd ?? weekday(ui.day)) : weekday(ui.day); data.since = data.since || ui.day; data.date = null; }
+  else data.date = ui.day;
+  if (id) Object.assign(S.blocks.find((x) => x.id === id), data);
+  else S.blocks.push({ id: newId('b'), ...data });
+  commit(); closeSheet(); render(); toast(id ? 'Bloque actualizado' : 'Bloque agregado');
+}
+
+function classesSheet() {
+  openSheet(`<h2><span>Mis clases</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <p class="muted" style="margin-top:-6px">Cargá cada horario una vez (club, días y de qué hora a qué hora). La agenda arma las clases sola, todas las semanas.</p>
+    <div class="set-list">${S.classes.map((c) => `<div class="set-row"><span class="ico" style="--c:#8FB21C">🎾</span><span class="lbl"><b>${esc(c.club)}</b><span>${freqLabel({ type: 'days', days: c.days })} · ${c.from} a ${c.to} · ${c.dur} min</span></span><button class="icon-btn" data-act="editClass" data-id="${c.id}" aria-label="Editar">${I.puntos}</button></div>`).join('') || '<div class="set-row muted">Todavía no cargaste clases</div>'}</div>
+    <div class="actions"><button class="btn block" data-act="editClass">${I.mas} Agregar horario</button>
+      ${S.settings.classesReviewed ? '' : '<button class="btn primary block" data-act="classesOk">Están bien así</button>'}</div>`);
+}
+
+function classForm(id) {
+  const c = id ? S.classes.find((x) => x.id === id) : { club: 'La 10', days: [1, 2, 3, 4, 5], from: '18:00', to: '21:00', dur: 60 };
+  openSheet(`<h2><span>${id ? 'Editar horario' : 'Nuevo horario'}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <form id="fClass" data-id="${id || ''}">
+      <div class="field"><label for="cClub">Club</label><input class="input" id="cClub" list="clubes" value="${esc(c.club)}" maxlength="30" required><datalist id="clubes"><option value="Jump"><option value="La 10"></datalist></div>
+      <div class="field"><span class="lb">Días</span>${daysHTML('cdays', c.days)}</div>
+      <div class="two"><div class="field"><label for="cFrom">Primera clase</label><input class="input" id="cFrom" type="time" value="${c.from}" required></div>
+        <div class="field"><label for="cTo">Termina la última</label><input class="input" id="cTo" type="time" value="${c.to}" required></div></div>
+      <div class="field"><span class="lb">Duración de cada clase</span>${segHTML('cdur', [[45, '45 min'], [60, '1 h'], [90, '1 h 30']], c.dur)}</div>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
+        ${id ? `<button class="btn danger block" type="button" data-act="delClass" data-id="${id}">Borrar horario</button>` : ''}</div>
+    </form>`);
+}
+
+function saveClass(form) {
+  const id = form.dataset.id;
+  const club = form.querySelector('#cClub').value.trim() || 'Club';
+  const days = pressed('cdays').map(Number);
+  if (!days.length) { toast('Elegí al menos un día'); return; }
+  const from = form.querySelector('#cFrom').value, dur = Number(pressed('cdur')[0]) || 60;
+  let to = form.querySelector('#cTo').value;
+  if (!to || toMin(to) < toMin(from) + dur) to = fromMin(toMin(from) + dur);
+  const data = { club, days, from, to, dur };
+  if (id) Object.assign(S.classes.find((x) => x.id === id), data);
+  else S.classes.push({ id: newId('c'), ...data });
+  S.settings.classesReviewed = true;
+  commit(); render(); classesSheet(); toast('Clases guardadas');
+}
+
+function classMenu(itemId) {
+  const k = ui.day, off = !!S.classOff[k];
+  const it = expandClasses(S.classes, k).find((x) => x.id === itemId);
+  openSheet(`<h2><span>${esc(it ? it.title : 'Clase')}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <div class="actions"><button class="btn block" data-act="toggleOff">${off ? 'Reactivar las clases de este día' : 'Suspender las clases de este día'}</button>
+      <button class="btn ghost block" data-act="classes">Editar mis clases</button></div>
+    <p class="help">Suspender sirve para lluvia o feriados: solo afecta a tu agenda, no avisa a nadie.</p>`);
+}
+
+// ---------- Aviso con deshacer ----------
+let toastTimer, undoFn = null;
+function toast(msg, undo) {
+  const t = document.getElementById('toast');
+  t.querySelector('span').textContent = msg;
+  t.querySelector('button').hidden = !undo;
+  undoFn = undo || null;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); undoFn = null; }, undo ? 5000 : 2200);
+}
+
+function setStatus(id, k, v) {
+  const prev = statusOf(S.log, id, k);
+  S.log[k] = S.log[k] || {};
+  if (v) S.log[k][id] = v; else delete S.log[k][id];
+  if (!Object.keys(S.log[k]).length) delete S.log[k];
+  commit();
+  return prev;
+}
+
+// ---------- Recordatorios ----------
+const FIRED = 'rutina.avisos';
+function firedGet() { try { return JSON.parse(localStorage.getItem(FIRED)) || {}; } catch { return firedMem; } }
+let firedMem = {};
+function firedSet(o) { firedMem = o; try { localStorage.setItem(FIRED, JSON.stringify(o)); } catch { /* sin almacenamiento */ } }
+
+async function notify(title, body, tag) {
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && reg.showNotification) return reg.showNotification(title, { body, tag, icon: 'icons/icono-192.png', badge: 'icons/icono-192.png' });
+    if (typeof Notification !== 'undefined') new Notification(title, { body, tag });
+  } catch { /* algunos navegadores no dejan */ }
+}
+
+function remindTick() {
+  const r = S.settings.remind;
+  if (!r.on || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const k = today(), m = nowMinutes();
+  let f = firedGet();
+  if (f.k !== k) f = { k, ids: [] };
+  const due = habitsActive().filter((h) => dueOn(h, S.log, k) && !statusOf(S.log, h.id, k));
+  const list = [];
+  if (r.morning) list.push({ id: 'manana', at: toMin(r.morning), go: () => due.length && notify(`Buen día ☀️`, `Hoy tenés ${due.length} ${due.length === 1 ? 'hábito' : 'hábitos'}. Arrancá por: ${due[0].name}.`, 'manana') });
+  if (r.evening) list.push({ id: 'noche', at: toMin(r.evening), go: () => due.length && notify('Cierre del día', `Te ${due.length === 1 ? 'falta' : 'faltan'}: ${due.slice(0, 4).map((h) => h.name).join(', ')}.`, 'noche') });
+  if (r.habits) for (const h of due) if (h.time) list.push({ id: h.id, at: toMin(h.time), go: () => notify(`${h.icon} ${h.name}`, 'Es la hora. Un toque y listo.', h.id) });
+  for (const it of list) {
+    if (m >= it.at && m < it.at + 10 && !f.ids.includes(it.id)) { f.ids.push(it.id); it.go(); }
+  }
+  firedSet(f);
+}
+
+function icsText() {
+  const r = S.settings.remind;
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const d0 = today().replace(/-/g, '');
+  const BY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const ev = (uid, title, hhmm, rule, dur = 15) => {
+    const s = hhmm.replace(':', '') + '00';
+    const e = fromMin(toMin(hhmm) + dur).replace(':', '') + '00';
+    return ['BEGIN:VEVENT', `UID:${uid}@rutina`, `DTSTAMP:${stamp}`, `DTSTART;TZID=America/Argentina/Cordoba:${d0}T${s}`, `DTEND;TZID=America/Argentina/Cordoba:${d0}T${e}`, `RRULE:${rule}`, `SUMMARY:${title}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n');
+  };
+  const out = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${APP.name}//ES`, 'CALSCALE:GREGORIAN',
+    'BEGIN:VTIMEZONE', 'TZID:America/Argentina/Cordoba', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE'];
+  if (r.morning) out.push(ev('manana', `${APP.name}: qué toca hoy`, r.morning, 'FREQ=DAILY'));
+  if (r.evening) out.push(ev('noche', `${APP.name}: cerrá el día`, r.evening, 'FREQ=DAILY'));
+  if (r.habits) for (const h of habitsActive()) {
+    if (!h.time) continue;
+    const rule = h.freq.type === 'days' ? `FREQ=WEEKLY;BYDAY=${h.freq.days.map((d) => BY[d]).join(',')}` : 'FREQ=DAILY';
+    out.push(ev(h.id, `${h.icon} ${h.name}`, h.time, rule, Number(h.dur) || 15));
+  }
+  out.push('END:VCALENDAR');
+  return out.join('\r\n');
+}
+
+function download(name, text, type) {
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch { toast('No se pudo descargar en este navegador'); }
+}
+
+// ---------- Toques ----------
+const actions = {
+  tab: (el) => { ui.tab = el.dataset.tab; if (ui.tab === 'agenda') { ui.scrollNow = true; } window.scrollTo({ top: 0 }); render(); },
+  toggle: (el) => {
+    const id = el.dataset.id, k = today();
+    const prev = statusOf(S.log, id, k);
+    const next = prev === 'done' ? '' : 'done';
+    setStatus(id, k, prev === 'skip' ? '' : next);
+    if (next === 'done' && prev !== 'skip') { ui.pop = id; try { navigator.vibrate && navigator.vibrate(12); } catch { /* */ } }
+    render();
+    const h = byId(id);
+    toast(prev === 'done' ? `${h.name}: desmarcado` : prev === 'skip' ? `${h.name}: vuelve a contar hoy` : `${h.name} ✓`, () => { setStatus(id, k, prev || ''); render(); });
+  },
+  habitMenu: (el) => habitMenu(el.dataset.id, ui.tab === 'agenda' ? ui.day : today()),
+  setStatus: (el) => {
+    const { id, k, v } = el.dataset;
+    const prev = setStatus(id, k, v);
+    if (v === 'done' && k === today()) ui.pop = id;
+    closeSheet(); render();
+    toast(v === 'done' ? 'Marcado ✓' : v === 'skip' ? 'Descanso: hoy no cuenta' : 'Listo', () => { setStatus(id, k, prev || ''); render(); });
+  },
+  month: (el) => { ui.month = null; monthSheet(el.dataset.id); },
+  monthNav: (el) => { ui.month = el.dataset.m; monthSheet(el.dataset.id); },
+  closeSheet: () => closeSheet(),
+  undo: () => { const f = undoFn; undoFn = null; document.getElementById('toast').classList.remove('show'); if (f) f(); },
+  day: (el) => { const d = Number(el.dataset.d); ui.day = d ? addDays(ui.day, d) : today(); ui.scrollNow = !d; render(); },
+  week: (el) => { const d = Number(el.dataset.d); ui.week = d ? addDays(ui.week, d) : today(); render(); },
+  newBlock: (el) => blockForm(null, el.dataset.h != null ? Number(el.dataset.h) : undefined),
+  editBlock: (el) => blockForm(el.dataset.id),
+  delBlock: (el) => {
+    const b = S.blocks.find((x) => x.id === el.dataset.id); if (!b) return;
+    const copia = JSON.parse(JSON.stringify(S.blocks));
+    if (el.dataset.only) b.except = [...(b.except || []), ui.day];
+    else S.blocks = S.blocks.filter((x) => x !== b);
+    commit(); closeSheet(); render();
+    toast('Bloque borrado', () => { S.blocks = copia; commit(); render(); });
+  },
+  classMenu: (el) => classMenu(el.dataset.id),
+  classes: () => classesSheet(),
+  classesOk: () => { S.settings.classesReviewed = true; commit(); closeSheet(); render(); toast('Listo, quedan guardadas'); },
+  editClass: (el) => classForm(el.dataset.id),
+  delClass: (el) => { S.classes = S.classes.filter((c) => c.id !== el.dataset.id); commit(); render(); classesSheet(); toast('Horario borrado'); },
+  toggleOff: () => { const k = ui.day; if (S.classOff[k]) delete S.classOff[k]; else S.classOff[k] = true; commit(); closeSheet(); render(); },
+  newHabit: () => habitForm(null),
+  editHabit: (el) => habitForm(el.dataset.id),
+  archive: (el) => { const h = byId(el.dataset.id); h.archived = true; commit(); closeSheet(); render(); toast(`${h.name} archivado`, () => { h.archived = false; commit(); render(); }); },
+  unarchive: (el) => { const h = byId(el.dataset.id); h.archived = false; commit(); render(); toast(`${h.name} vuelve a Hoy`); },
+  delHabit: (el) => {
+    if (!el.dataset.armed) { el.dataset.armed = '1'; el.textContent = 'Tocá de nuevo para borrar todo su historial'; return; }
+    const id = el.dataset.id;
+    S.habits = S.habits.filter((h) => h.id !== id);
+    for (const k of Object.keys(S.log)) { delete S.log[k][id]; if (!Object.keys(S.log[k]).length) delete S.log[k]; }
+    commit(); closeSheet(); render(); toast('Hábito borrado');
+  },
+  move: (el) => {
+    const act = S.habits.filter((h) => !h.archived);
+    const i = act.findIndex((h) => h.id === el.dataset.id), j = i + Number(el.dataset.d);
+    if (j < 0 || j >= act.length) return;
+    const a = S.habits.indexOf(act[i]), b = S.habits.indexOf(act[j]);
+    [S.habits[a], S.habits[b]] = [S.habits[b], S.habits[a]];
+    commit(); render();
+  },
+  step: (el) => { const n = sheet.querySelector('#hN'); n.textContent = Math.max(1, Math.min(7, Number(n.textContent) + Number(el.dataset.d))); },
+  theme: (el) => { S.settings.theme = el.dataset.v; commit(); render(); },
+  testNotif: async () => {
+    if (typeof Notification === 'undefined') { toast('Acá no hay avisos. En iPhone: instalá la app y abrila desde el ícono.'); return; }
+    if (Notification.permission === 'default') await Notification.requestPermission();
+    if (Notification.permission !== 'granted') { toast('Sin permiso para avisos'); render(); return; }
+    notify(`${APP.name}`, 'Así te van a llegar los avisos.', 'prueba'); render();
+  },
+  ics: () => { download(`${APP.name.toLowerCase()}-recordatorios.ics`, icsText(), 'text/calendar'); toast('Abrí el archivo para sumarlos al calendario'); },
+  export: () => { download(`${APP.name.toLowerCase()}-copia-${today()}.json`, exportJSON(S), 'application/json'); toast('Copia exportada'); },
+  resetDemo: () => { S = seedDemo(today()); commit(); ui.tab = 'hoy'; render(); toast('Demo reiniciada'); },
+};
+
+document.addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick) {
+    const g = pick.closest('[data-group]');
+    if (g.dataset.multi) pick.setAttribute('aria-pressed', pick.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    else g.querySelectorAll('[data-pick]').forEach((b) => b.setAttribute('aria-pressed', String(b === pick)));
+    if (g.dataset.group === 'freq') sheet.querySelectorAll('[data-show]').forEach((x) => { x.hidden = x.dataset.show !== pick.dataset.v; });
+    return;
+  }
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = actions[el.dataset.act];
+  if (fn) { e.preventDefault(); fn(el, e); }
+});
+
+document.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (e.target.id === 'fHabit') saveHabit(e.target);
+  if (e.target.id === 'fBlock') saveBlock(e.target);
+  if (e.target.id === 'fClass') saveClass(e.target);
+});
+
+document.addEventListener('change', async (e) => {
+  const k = e.target.dataset && e.target.dataset.set;
+  if (!k) return;
+  const r = S.settings.remind;
+  if (k === 'name') S.settings.name = e.target.value.trim().slice(0, 20);
+  if (k === 'grouping') S.settings.grouping = e.target.checked;
+  if (k === 'remind.morning') r.morning = e.target.value;
+  if (k === 'remind.evening') r.evening = e.target.value;
+  if (k === 'remind.habits') r.habits = e.target.checked;
+  if (k === 'remind.on') {
+    r.on = e.target.checked;
+    if (r.on && typeof Notification !== 'undefined' && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch { /* */ } }
+    if (r.on && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) toast('Guardado. Para que lleguen, instalá la app y dale permiso.');
+  }
+  if (k === 'import') {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try { S = importJSON(await file.text()); commit(); render(); toast('Copia importada'); } catch (err) { toast(err.message || 'No se pudo importar'); }
+    return;
+  }
+  commit(); render();
+});
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeSheet(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open')) render(); remindTick(); } });
+setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
+
+if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline */ });
+}
+
+// Para pruebas automáticas
+window.__rutina = { get S() { return S; }, ui, render, analyze, today };
+
+render();
+remindTick();
+
+})();
+</script>
+</body>
+</html>
