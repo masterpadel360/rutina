@@ -907,6 +907,151 @@ textarea.input.area { min-height: 68px; padding: 12px 14px; resize: vertical; li
 :root[data-palette="vida"] .ev.cal { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cal) 16%, var(--surface)) 0 6px, color-mix(in srgb, var(--cal) 7%, var(--surface)) 6px 12px); }
 :root[data-palette="vida"] .ev.tarea { background: color-mix(in srgb, var(--accent-fill) 14%, var(--surface)); }
 
+/* ---------- Vida: luz y vidrio ----------
+   Una sola capa de luces (tres resplandores) que se mueve muy lento detrás de todo.
+   Desenfoque real (backdrop-filter) solo en pocas piezas: anillo, resúmenes, pestañas, hojas y aviso.
+   Las tarjetas de lista son vidrio "pintado" (blanco translúcido sin desenfoque) para que el iPhone ande liviano. */
+:root[data-palette="vida"] {
+  --bloom-1: rgba(184, 156, 255, .55); --bloom-2: rgba(255, 190, 150, .50); --bloom-3: rgba(255, 224, 110, .32);
+  --glass-card: rgba(255, 255, 255, .74); --glass-strong: rgba(255, 255, 255, .62);
+  --glass-hi: rgba(255, 255, 255, .95); --glass-edge: rgba(255, 255, 255, .55); --glass-inner: rgba(255, 255, 255, .55);
+  --glow: rgba(115, 80, 224, .22); --glow-btn: rgba(115, 80, 224, .5);
+  --glass: rgba(255, 255, 255, .55);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="vida"]:not([data-theme="light"]) {
+    --bloom-1: rgba(120, 72, 230, .42); --bloom-2: rgba(214, 110, 86, .26); --bloom-3: rgba(240, 200, 80, .12);
+    --glass-card: rgba(58, 40, 72, .62); --glass-strong: rgba(58, 40, 72, .5);
+    --glass-hi: rgba(255, 240, 255, .2); --glass-edge: rgba(255, 240, 255, .09); --glass-inner: rgba(200, 170, 255, .07);
+    --glow: rgba(140, 100, 255, .28); --glow-btn: rgba(165, 132, 255, .45);
+    --glass: rgba(48, 34, 60, .55);
+  }
+}
+:root[data-theme="dark"][data-palette="vida"] {
+  --bloom-1: rgba(120, 72, 230, .42); --bloom-2: rgba(214, 110, 86, .26); --bloom-3: rgba(240, 200, 80, .12);
+  --glass-card: rgba(58, 40, 72, .62); --glass-strong: rgba(58, 40, 72, .5);
+  --glass-hi: rgba(255, 240, 255, .2); --glass-edge: rgba(255, 240, 255, .09); --glass-inner: rgba(200, 170, 255, .07);
+  --glow: rgba(140, 100, 255, .28); --glow-btn: rgba(165, 132, 255, .45);
+  --glass: rgba(48, 34, 60, .55);
+}
+
+/* Resplandores */
+:root[data-palette="vida"] body::after {
+  content: ""; position: fixed; inset: -20vmax; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 18% 14%, var(--bloom-1), transparent 70%),
+    radial-gradient(34vmax 34vmax at 88% 46%, var(--bloom-2), transparent 70%),
+    radial-gradient(30vmax 30vmax at 30% 86%, var(--bloom-3), transparent 70%),
+    radial-gradient(26vmax 26vmax at 80% 96%, var(--bloom-1), transparent 70%);
+  will-change: transform; animation: luces 48s ease-in-out infinite alternate;
+}
+@keyframes luces {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3vmax, -2vmax, 0) scale(1.06); }
+  100% { transform: translate3d(-2vmax, 3vmax, 0) scale(1.02); }
+}
+
+/* Vidrio pintado: tarjetas de lista */
+:root[data-palette="vida"] :is(.card, .habit, .task, .streak, .sug, .set-list, .gcatrow, .timeline, .daynav, details.other summary, .chip, .seg) {
+  background-color: var(--glass-card);
+}
+:root[data-palette="vida"] :is(.card, .habit, .task, .streak, .sug, .set-list, .gcatrow, .timeline) {
+  box-shadow: inset 1px 1px 0 var(--glass-hi), inset 0 0 0 1px var(--glass-edge), inset 0 0 22px var(--glass-inner), 0 10px 28px -16px var(--glow), 0 1px 2px rgba(60, 30, 80, .05);
+}
+:root[data-palette="vida"] .habit.done { background: color-mix(in srgb, var(--cc) 12%, var(--glass-card)); box-shadow: inset 1px 1px 0 var(--glass-hi), inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 38%, transparent), 0 10px 28px -14px color-mix(in srgb, var(--cc) 45%, transparent); }
+:root[data-palette="vida"] .task.vieja { background: color-mix(in srgb, #FFB27A 16%, var(--glass-card)); }
+:root[data-palette="vida"] .task.done { background: transparent; box-shadow: inset 0 0 0 1px var(--glass-edge); }
+:root[data-palette="vida"] .tasks-hoy .task { background: rgba(255, 255, 255, .5); box-shadow: inset 1px 1px 0 var(--glass-hi), inset 0 0 0 1px var(--glass-edge); }
+:root[data-palette="vida"] .set-list .set-row, :root[data-palette="vida"] .movs .mov { background: transparent; }
+:root[data-palette="vida"] .ev { box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .6), inset 0 0 0 1px color-mix(in srgb, var(--cc) 22%, transparent); }
+
+/* Vidrio de verdad (con desenfoque): pocas piezas */
+:root[data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .42) 48%, rgba(255, 255, 255, .62));
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: inset 1.5px 1.5px 0 var(--glass-hi), inset 0 0 0 1px var(--glass-edge), inset 0 0 36px var(--glass-inner), 0 18px 44px -18px var(--glow), 0 2px 4px rgba(60, 30, 80, .05);
+}
+:root[data-palette="vida"] .hero { position: relative; overflow: hidden; }
+:root[data-palette="vida"] .hero::before {
+  content: ""; position: absolute; inset: -40% -20%; pointer-events: none; z-index: 0;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, .55) 44%, rgba(255, 255, 255, 0) 52%, transparent 60%),
+    radial-gradient(60% 50% at 0% 0%, rgba(201, 182, 248, .55), transparent 70%), radial-gradient(50% 45% at 100% 100%, rgba(255, 200, 160, .45), transparent 70%);
+}
+:root[data-palette="vida"] .hero :is(.ring, h2, p, .next) { position: relative; z-index: 1; }
+:root[data-palette="vida"] .hero .next { background: rgba(255, 255, 255, .6); box-shadow: inset 1px 1px 0 var(--glass-hi), inset 0 0 0 1px var(--glass-edge); }
+:root[data-palette="vida"] .hero .next.cal { background: color-mix(in srgb, var(--cal) 10%, rgba(255, 255, 255, .6)); }
+
+/* Pestañas, hojas y aviso: vidrio esmerilado fuerte */
+:root[data-palette="vida"] .tabs {
+  background: var(--glass); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8);
+  box-shadow: inset 1.5px 1.5px 0 var(--glass-hi), inset 0 0 0 1px var(--glass-edge), 0 18px 44px -14px var(--glow), 0 2px 8px rgba(60, 30, 80, .08);
+}
+:root[data-palette="vida"] .tab[aria-current="page"] { background: color-mix(in srgb, var(--accent-soft) 80%, transparent); box-shadow: inset 1px 1px 0 var(--glass-hi), 0 4px 14px -6px var(--glow-btn); }
+:root[data-palette="vida"] .sheet {
+  background: color-mix(in srgb, var(--bg) 62%, transparent); -webkit-backdrop-filter: blur(36px) saturate(1.7); backdrop-filter: blur(36px) saturate(1.7);
+  box-shadow: inset 0 1.5px 0 var(--glass-hi), 0 -16px 50px -14px var(--glow);
+}
+:root[data-palette="vida"] .scrim { background: rgba(60, 30, 90, .22); }
+
+/* Chips con brillo */
+:root[data-palette="vida"] :is(.habit, .streak, .sug, .set-row, .gcatrow, .mov) .ico {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .6), rgba(255, 255, 255, 0) 52%), color-mix(in srgb, var(--cc) 30%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 45%, transparent), inset 0 -3px 6px color-mix(in srgb, var(--cc) 18%, transparent), 0 4px 10px -4px color-mix(in srgb, var(--cc) 45%, transparent);
+}
+:root[data-palette="vida"] .habit.done .check { background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, .55), transparent 45%), var(--cc); }
+
+/* Botones con luz */
+:root[data-palette="vida"] .btn.primary, :root[data-palette="vida"] .chip.on, :root[data-palette="vida"] .grid .hd.hoy {
+  background: linear-gradient(180deg, #9277F0, var(--accent-fill) 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 10px 26px -8px var(--glow-btn);
+}
+:root[data-palette="vida"] .fab.btn.primary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 14px 34px -8px var(--glow-btn), 0 2px 6px rgba(60, 30, 80, .15); }
+:root[data-palette="vida"] .switch input:checked + i { box-shadow: 0 0 14px -2px var(--glow-btn); }
+:root[data-palette="vida"] .ring .fgc { filter: drop-shadow(0 0 6px rgba(140, 100, 255, .45)); }
+
+/* Oscuro: el mismo vidrio sobre ciruela */
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="vida"]:not([data-theme="light"]) :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); }
+  :root[data-palette="vida"]:not([data-theme="light"]) .hero::before { background: linear-gradient(115deg, transparent 32%, rgba(255, 240, 255, .1) 44%, transparent 54%), radial-gradient(60% 50% at 0% 0%, rgba(140, 100, 255, .35), transparent 70%), radial-gradient(50% 45% at 100% 100%, rgba(214, 110, 86, .22), transparent 70%); }
+  :root[data-palette="vida"]:not([data-theme="light"]) .hero .next, :root[data-palette="vida"]:not([data-theme="light"]) .tasks-hoy .task { background: rgba(255, 240, 255, .06); }
+  :root[data-palette="vida"]:not([data-theme="light"]) .btn.primary, :root[data-palette="vida"]:not([data-theme="light"]) .chip.on, :root[data-palette="vida"]:not([data-theme="light"]) .grid .hd.hoy { background: linear-gradient(180deg, #BBA2FF, var(--accent-fill) 60%); }
+  :root[data-palette="vida"]:not([data-theme="light"]) .ev { box-shadow: inset 1px 1px 0 rgba(255, 240, 255, .08), inset 0 0 0 1px color-mix(in srgb, var(--cc) 22%, transparent); }
+  :root[data-palette="vida"]:not([data-theme="light"]) :is(.habit, .streak, .sug, .set-row, .gcatrow, .mov) .ico { background: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 52%), color-mix(in srgb, var(--cc) 30%, var(--surface)); }
+}
+:root[data-theme="dark"][data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); }
+:root[data-theme="dark"][data-palette="vida"] .hero::before { background: linear-gradient(115deg, transparent 32%, rgba(255, 240, 255, .1) 44%, transparent 54%), radial-gradient(60% 50% at 0% 0%, rgba(140, 100, 255, .35), transparent 70%), radial-gradient(50% 45% at 100% 100%, rgba(214, 110, 86, .22), transparent 70%); }
+:root[data-theme="dark"][data-palette="vida"] .hero .next, :root[data-theme="dark"][data-palette="vida"] .tasks-hoy .task { background: rgba(255, 240, 255, .06); }
+:root[data-theme="dark"][data-palette="vida"] .btn.primary, :root[data-theme="dark"][data-palette="vida"] .chip.on, :root[data-theme="dark"][data-palette="vida"] .grid .hd.hoy { background: linear-gradient(180deg, #BBA2FF, var(--accent-fill) 60%); }
+:root[data-theme="dark"][data-palette="vida"] .ev { box-shadow: inset 1px 1px 0 rgba(255, 240, 255, .08), inset 0 0 0 1px color-mix(in srgb, var(--cc) 22%, transparent); }
+:root[data-theme="dark"][data-palette="vida"] :is(.habit, .streak, .sug, .set-row, .gcatrow, .mov) .ico { background: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 52%), color-mix(in srgb, var(--cc) 30%, var(--surface)); }
+
+/* Sin desenfoque (navegadores viejos): blanco casi sólido para que el texto se lea siempre */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy, .card, .habit, .task, .streak, .set-list, .timeline) { background: var(--surface); }
+  :root[data-palette="vida"] .tabs { background: var(--surface); }
+  :root[data-palette="vida"] .sheet { background: var(--bg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-palette="vida"] body::after { animation: none; }
+}
+:root[data-palette="vida"] .sug[aria-pressed="true"] { background: color-mix(in srgb, var(--cc) 12%, var(--glass-card)); box-shadow: inset 1px 1px 0 var(--glass-hi), inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 70%, transparent), 0 10px 28px -14px color-mix(in srgb, var(--cc) 45%, transparent); }
+/* Vida: más luz (ajuste) */
+:root[data-palette="vida"] { --bloom-1: rgba(178, 146, 255, .85); --bloom-2: rgba(255, 178, 132, .72); --bloom-3: rgba(255, 222, 90, .5); --glass-edge: rgba(140, 110, 200, .16); --glass-card: rgba(255, 255, 255, .7); }
+:root[data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .3) 48%, rgba(255, 255, 255, .5)); }
+:root[data-palette="vida"] .hero::before { background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .7) 42%, rgba(255, 255, 255, 0) 50%, transparent 58%), radial-gradient(60% 55% at 0% 0%, rgba(190, 165, 255, .7), transparent 70%), radial-gradient(55% 50% at 100% 100%, rgba(255, 190, 150, .6), transparent 70%); }
+:root[data-palette="vida"] .tasks-hoy .task { background: rgba(255, 255, 255, .72); }
+:root[data-palette="vida"] .hero .next { background: rgba(255, 255, 255, .7); }
+@media (prefers-color-scheme: dark) { :root[data-palette="vida"]:not([data-theme="light"]) { --bloom-1: rgba(124, 74, 240, .55); --bloom-2: rgba(220, 110, 86, .32); --bloom-3: rgba(240, 200, 80, .16); --glass-edge: rgba(255, 240, 255, .09); --glass-card: rgba(58, 40, 72, .62); } }
+:root[data-theme="dark"][data-palette="vida"] { --bloom-1: rgba(124, 74, 240, .55); --bloom-2: rgba(220, 110, 86, .32); --bloom-3: rgba(240, 200, 80, .16); --glass-edge: rgba(255, 240, 255, .09); --glass-card: rgba(58, 40, 72, .62); }
+/* Vida: el fondo va en <html> para que las luces y el grano (detrás del body) se vean */
+:root[data-palette="vida"] { background: radial-gradient(130% 55% at 85% -12%, color-mix(in srgb, var(--bg-wash) 85%, transparent), transparent 62%), var(--bg); }
+:root[data-palette="vida"] body { background: transparent; }
+:root[data-palette="vida"] :is(.hero, .summary, .gsum) { background: linear-gradient(135deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .2) 48%, rgba(255, 255, 255, .4)); }
+:root[data-palette="vida"] .tasks-hoy { background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .25) 50%, rgba(255, 255, 255, .42)); }
+@media (prefers-color-scheme: dark) { :root[data-palette="vida"]:not([data-theme="light"]) :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); } }
+:root[data-theme="dark"][data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); }
+:root[data-palette="vida"] .gsave { background: none; }
+
 </style>
 </head>
 <body>
