@@ -3,7 +3,7 @@ import { dateKey, addDays, weekday } from './logic.js';
 
 // Marca: cambiar acá el nombre si se vende con otra marca.
 // avisos: dirección del servidor de avisos push (se completa al publicarlo; también se puede cambiar en Ajustes).
-export const APP = { name: 'Rutina', tagline: 'Tus hábitos y tu día, en un toque', storageKey: 'rutina.datos', schema: 2, avisos: '' };
+export const APP = { name: 'Rutina', tagline: 'Tus hábitos y tu día, en un toque', storageKey: 'rutina.datos', schema: 3, avisos: '' };
 
 export const COLORES = ['#2F9E62', '#2B7FD9', '#8B5CF6', '#E07B39', '#D94F70', '#C9A227', '#14A3A3', '#6B7280'];
 
@@ -61,11 +61,12 @@ const settingsBase = () => ({
   classesOn: false, classesReviewed: false, onboarded: false,
   cal: { url: '', token: '' },
   push: { url: '', on: false, id: '', clave: '' },
+  taskLists: [], expenseCats: [], budgets: {},
 });
 
 // Usuario nuevo: sin hábitos ni clases (los elige en la bienvenida).
 export function emptyState() {
-  return { v: APP.schema, settings: settingsBase(), habits: [], log: {}, blocks: [], classes: [], classOff: {} };
+  return { v: APP.schema, settings: settingsBase(), habits: [], log: {}, blocks: [], classes: [], classOff: {}, tasks: [], expenses: [] };
 }
 
 // Migraciones: cuando cambie el esquema, se agrega un paso acá.
@@ -80,12 +81,18 @@ export function migrate(s) {
     remind: { ...base.remind, ...(viejo.remind || {}), quiet: { ...base.remind.quiet, ...((viejo.remind || {}).quiet || {}) } },
     cal: { ...base.cal, ...(viejo.cal || {}) },
     push: { ...base.push, ...(viejo.push || {}) },
+    taskLists: Array.isArray(viejo.taskLists) ? viejo.taskLists : [],
+    expenseCats: Array.isArray(viejo.expenseCats) ? viejo.expenseCats : [],
+    budgets: viejo.budgets && typeof viejo.budgets === 'object' ? viejo.budgets : {},
   };
   s.habits = Array.isArray(s.habits) ? s.habits : (s.v < 2 ? defaultHabits(dateKey()) : []);
   s.log = s.log && typeof s.log === 'object' ? s.log : {};
   s.blocks = Array.isArray(s.blocks) ? s.blocks : [];
   s.classes = Array.isArray(s.classes) ? s.classes : (s.v < 2 ? defaultClasses() : []);
   s.classOff = s.classOff && typeof s.classOff === 'object' ? s.classOff : {};
+  // v3: tareas y gastos (los datos de antes quedan igual, se suman listas vacías)
+  s.tasks = Array.isArray(s.tasks) ? s.tasks : [];
+  s.expenses = Array.isArray(s.expenses) ? s.expenses : [];
   s.v = APP.schema;
   return s;
 }
@@ -144,5 +151,28 @@ export function seedDemo(today = dateKey()) {
     { id: 'b2', date: today, start: '13:00', end: '14:00', title: 'Almuerzo', color: COLORES[5] },
     { id: 'b3', weekly: true, wd: 1, start: '12:00', end: '12:30', title: 'Pagar canchas a Gonza', color: COLORES[3] },
   ];
+  const d = (n) => addDays(today, n);
+  const tk = (id, title, date, extra = {}) => ({ id, title, date, time: null, prio: 'normal', list: null, done: false, doneAt: null, created: d(-3), ...extra });
+  s.tasks = [
+    tk('t1', 'Mandar fixture de la fecha 6', d(-1), { list: 'Liga', prio: 'alta' }),
+    tk('t2', 'Llamar a Ari por el sponsor', today, { time: '11:30', list: 'Trabajo' }),
+    tk('t3', 'Comprar pelotas para las clases', today, { list: 'Clases' }),
+    tk('t4', 'Grabar reel con la Insta360', today, { list: 'Trabajo', prio: 'alta' }),
+    tk('t5', 'Reservar cancha para el torneo', d(1), { time: '10:00', list: 'Liga' }),
+    tk('t6', 'Renovar el seguro del auto', d(4), { list: 'Personal' }),
+    tk('t7', 'Ideas para la landing de clases', null, { list: 'Trabajo' }),
+    tk('t8', 'Pagar la luz', d(-1), { done: true, doneAt: d(-1), list: 'Personal' }),
+    tk('t9', 'Subir resultados de la liga', today, { done: true, doneAt: today, list: 'Liga' }),
+  ];
+  const g = (id, n, amount, cat, note, kind = 'gasto') => ({ id, kind, amount, cat, note, date: d(-n), created: d(-n) + 'T' + String(10 + (amount % 9)).padStart(2, '0') + ':00' });
+  s.expenses = [
+    g('g1', 0, 4800, 'comida', 'Café con Esteban'), g('g2', 0, 3200, 'transporte', 'Uber a Jump'),
+    g('g3', 1, 18500, 'canchas', 'Cancha para la liga'), g('g4', 1, 27300, 'comida', 'Súper'),
+    g('g5', 2, 9900, 'ocio', 'Cine'), g('g6', 3, 45000, 'casa', 'Expensas'), g('g7', 3, 120000, 'trabajo', 'Clases de la semana', 'ingreso'),
+    g('g8', 4, 6500, 'salud', 'Farmacia'), g('g9', 5, 15000, 'transporte', 'Nafta'), g('g10', 6, 32000, 'trabajo', 'Publicidad en Meta'),
+    g('g11', 7, 12400, 'comida', 'Verdulería'), g('g12', 8, 21000, 'canchas', 'Paletas encordado'), g('g13', 9, 160000, 'trabajo', 'Inscripciones liga', 'ingreso'),
+    g('g14', 12, 85000, 'casa', 'Alquiler'), g('g15', 35, 52000, 'comida', 'Súper del mes'),
+  ].filter((x) => x.date.slice(0, 7) === today.slice(0, 7) || x.id === 'g15');
+  s.settings.budgets = { comida: 90000, transporte: 30000, ocio: 25000 };
   return s;
 }

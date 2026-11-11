@@ -9,7 +9,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (p) => readFileSync(join(root, p), 'utf8');
 
 const css = leer('css/app.css');
-const js = ['js/logic.js', 'js/agregar.js', 'js/calendario.js', 'js/avisos.js', 'js/store.js', 'js/main.js']
+const js = ['js/logic.js', 'js/agregar.js', 'js/finanzas.js', 'js/tareas.js', 'js/calendario.js', 'js/avisos.js', 'js/store.js', 'js/main.js']
   .map((p) => `// ---- ${p} ----\n` + leer(p)
     .replace(/^import[\s\S]*?from\s+'[^']+';[ \t]*\r?\n/gm, '')
     .replace(/^export\s+/gm, ''))
@@ -27,7 +27,7 @@ const html = `<!doctype html>
 <link rel="icon" href="${icono}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300..600&family=Manrope:wght@400..800&display=swap">
 <style>
 ${css}
 </style>

@@ -7,6 +7,8 @@ import {
 import { APP, COLORES, newId, load, save, exportJSON, importJSON, seedDemo, persistente, sugeridos } from './store.js';
 import { TONOS, planAvisos, llenar, avisoHabito, hechosDe, ejemploAviso } from './avisos.js';
 import { parseAgregar } from './agregar.js';
+import { categorias, catDe, formatARS, parseMonto, mesDe, mesSiguiente, resumenMes, presupuesto, importarGastos, gastosCSV } from './finanzas.js';
+import { listas, estadoTarea, agruparTareas, tareasDeHoy, posponer, tareaDesdeTexto, importarTareas } from './tareas.js';
 import { CAL_COLOR, urlEventos, calDia, rangoCal, haceCuanto, calDemo } from './calendario.js';
 
 const DEMO = typeof window !== 'undefined' && !!window.RUTINA_DEMO;
@@ -76,7 +78,6 @@ const I = {
   agenda: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h3"/></svg>',
   semana: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>',
   ajustes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>',
-  mas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
   izq: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
   der: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
   arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg>',
@@ -84,6 +85,11 @@ const I = {
   puntos: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg>',
   cerrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   tilde: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  tareas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="5" height="5" rx="1.6"/><path d="M4.8 15.8l1.3 1.3 2.4-2.6M12 7h8.5M12 16h8.5"/></svg>',
+  gastos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><path d="M4 9.5h16M15.5 14.5h1.5"/></svg>',
+  mas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg>',
+  borrar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h10.5A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>',
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
 };
 const EMOJIS = ['🧘', '🏋️', '🧠', '🗣️', '🎾', '🏃', '💪', '🥗', '😴', '⏰', '📚', '💧', '🚴', '🏊', '🧴', '📖', '✍️', '🙏', '🍎', '📵', '🧹', '💰', '🎯', '📞'];
@@ -95,7 +101,7 @@ const root = document.getElementById('app');
 root.innerHTML = `
   <main class="wrap" id="view"></main>
   <nav class="tabs" aria-label="Secciones">
-    ${[['hoy', 'Hoy'], ['agenda', 'Agenda'], ['semana', 'Semana'], ['ajustes', 'Ajustes']].map(([t, n]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[t]}<span>${n}</span></button>`).join('')}
+    ${[['hoy', 'Hoy', 'hoy'], ['agenda', 'Agenda', 'agenda'], ['tareas', 'Tareas', 'tareas'], ['gastos', 'Gastos', 'gastos'], ['mas', 'Más', 'menu']].map(([t, n, i]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[i]}<span>${n}</span></button>`).join('')}
   </nav>
   <button class="btn primary fab" data-act="newBlock" hidden>${I.mas}<span>Bloque</span></button>
   <div class="scrim" data-act="closeSheet"></div>
@@ -118,9 +124,14 @@ function render() {
   const ob = !S.settings.onboarded;
   document.body.classList.toggle('ob', ob);
   if (ob) { view.innerHTML = renderBienvenida(); ui.pop = null; return; }
-  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === ui.tab ? 'page' : 'false'));
-  document.querySelector('.fab').hidden = ui.tab !== 'agenda';
-  view.innerHTML = ({ hoy: renderHoy, agenda: renderAgenda, semana: renderSemana, ajustes: renderAjustes })[ui.tab]();
+  const enMas = ui.tab === 'semana' || ui.tab === 'ajustes';
+  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === ui.tab || (b.dataset.tab === 'mas' && enMas) ? 'page' : 'false'));
+  const fab = document.querySelector('.fab');
+  const F = ({ agenda: ['newBlock', 'Bloque'], gastos: ['newGasto', 'Anotar'] })[ui.tab];
+  fab.hidden = !F;
+  if (F) { fab.dataset.act = F[0]; fab.querySelector('span').textContent = F[1]; }
+  const masNav = enMas ? `<div class="seg masnav">${[['semana', 'Semana'], ['ajustes', 'Ajustes']].map(([t, n]) => `<button data-act="tab" data-tab="${t}" aria-pressed="${ui.tab === t}">${n}</button>`).join('')}</div>` : '';
+  view.innerHTML = masNav + ({ hoy: renderHoy, agenda: renderAgenda, tareas: renderTareas, gastos: renderGastos, semana: renderSemana, ajustes: renderAjustes })[ui.tab]();
   if (ui.tab === 'hoy') animateRing();
   if (ui.tab === 'agenda' && ui.scrollNow) {
     ui.scrollNow = false;
@@ -274,6 +285,7 @@ function renderHoy() {
 
   return `<header class="head"><div><div class="eyebrow">${cap(fechaLarga(k))}</div><h1>${saludo()}</h1><p class="intencion">${INTENCIONES[wd]}</p></div><div class="brand">${esc(APP.name)}</div></header>
   <section class="card hero">${ringSVG(p.done, p.total)}<div class="grow"><h2>${titulo}</h2><p>${sub}</p>${nextHTML}</div></section>
+  ${tareasHoyCard(k)}
   ${resumen}
   ${lista}
   ${other.length ? `<details class="other"><summary>Otros hábitos (hoy no tocan) · ${other.length}${I.abajo}</summary><div class="list">${sortHabits(other).map((h) => habitRow(h, k)).join('')}</div></details>` : ''}
@@ -315,6 +327,11 @@ function agendaItems(k) {
     const s = toMin(b.start), e = Math.max(toMin(b.end) || 0, s + 15);
     items.push({ kind: 'bloque', id: b.id, start: s, end: e, color: b.color, label: b.title, weekly: b.weekly });
   }
+  for (const t of S.tasks) {
+    if (t.date !== k || !t.time) continue;
+    const s = toMin(t.time);
+    items.push({ kind: 'tarea', id: t.id, start: s, end: s + 30, color: '#C9A227', label: t.title, done: !!t.done });
+  }
   if (calOn()) for (const e of calDia(cal.eventos, k).timed) {
     items.push({ kind: 'cal', id: e.id, start: e.start, end: e.end, color: CAL_COLOR, label: e.title, cont: e.desde || e.hasta });
   }
@@ -346,8 +363,8 @@ function renderAgenda() {
     const top = y(it.start), hgt = Math.max(24, y(it.end) - top - 2);
     const short = hgt < 42;
     const w = 100 / it.lanes;
-    const cls = ['ev', it.kind === 'clase' ? 'clase' : '', it.kind === 'habito' ? 'habito' : '', it.kind === 'cal' ? 'cal' : '', it.done ? 'hecho' : '', it.off ? 'off' : '', short ? 'short' : ''].join(' ');
-    const act = ({ clase: 'classMenu', habito: 'habitMenu', cal: 'calEvent' })[it.kind] || 'editBlock';
+    const cls = ['ev', it.kind === 'clase' ? 'clase' : '', it.kind === 'habito' ? 'habito' : '', it.kind === 'tarea' ? 'tarea' : '', it.kind === 'cal' ? 'cal' : '', it.done ? 'hecho' : '', it.off ? 'off' : '', short ? 'short' : ''].join(' ');
+    const act = ({ clase: 'classMenu', habito: 'habitMenu', cal: 'calEvent', tarea: 'editTask' })[it.kind] || 'editBlock';
     const hora = `${fromMin(it.start)}–${it.end >= 1440 ? '24:00' : fromMin(it.end)}`;
     const extra = it.weekly && !short ? ' · se repite' : it.kind === 'cal' && !short ? ' · Calendario' : '';
     return `<button class="${cls}" style="--c:${it.color};top:${top}px;height:${hgt}px;left:calc(${it.lane * w}% + 2px);width:calc(${w}% - 6px)" data-act="${act}" data-id="${esc(it.id)}">
@@ -612,11 +629,268 @@ function renderAjustes() {
       <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
     </div>
 
+    <div class="section-t">Traer de otra app</div>
+    <div class="set-list">
+      <div class="set-row"><span class="lbl"><b>Tareas</b><span>Desde un CSV (ej. Mi Agenda)</span></span><label class="btn sm">Importar<input type="file" accept=".csv,text/csv,text/plain" data-set="impTareas" class="sr"></label></div>
+      <div class="set-row"><span class="lbl"><b>Gastos</b><span>Fecha, descripción, monto, categoría</span></span><label class="btn sm">Importar<input type="file" accept=".csv,text/csv,text/plain" data-set="impGastos" class="sr"></label></div>
+    </div>
+    <p class="help">Si tu app vieja no exporta CSV, copiá los datos a una planilla (Google Sheets o Excel) y descargala como CSV. Las columnas pueden estar en cualquier orden.</p>
+
     <div class="section-t">Copia de seguridad</div>
     <div class="set-list"><div class="set-row"><button class="btn sm" data-act="export">Exportar</button><label class="btn sm ghost">Importar<input type="file" accept="application/json,.json" data-set="import" class="sr"></label></div></div>
     <p class="help">Tus datos quedan solo en este teléfono. Exportá una copia cada tanto.</p>
     ${DEMO ? '<div class="set-list" style="margin-top:14px"><div class="set-row"><span class="lbl"><b>Demo</b><span>Volver a los datos de ejemplo</span></span><button class="btn sm danger" data-act="resetDemo">Reiniciar</button></div></div>' : ''}
     <p class="help" style="text-align:center;margin-top:24px">${esc(APP.name)} · ${esc(APP.tagline)}</p>`;
+}
+
+// ---------- TAREAS ----------
+function quedoTxt(k) {
+  const d = diffDays(k, today());
+  if (d === 1) return 'Quedó de ayer';
+  if (d < 7) return `Quedó del ${DIAS_LARGO[weekday(k)]}`;
+  const [, mm, dd] = k.split('-').map(Number);
+  return `Quedó del ${dd}/${mm}`;
+}
+function taskRow(t, { compacto = false } = {}) {
+  const k = today();
+  const st = estadoTarea(t, k);
+  const meta = [];
+  if (st === 'vencida') meta.push(`<span class="vieja-t">${quedoTxt(t.date)}</span>`);
+  else if (t.date && st !== 'hoy' && !(compacto && st === 'hecha')) meta.push(`<span>${esc(cuandoTxt(t.date))}</span>`);
+  if (t.time) meta.push(`<span class="num">${t.time}</span>`);
+  if (t.list && !compacto) meta.push(`<span class="lista">${esc(t.list)}</span>`);
+  const pop = ui.popTask === t.id ? ' pop' : '';
+  const fin = st === 'vencida'
+    ? `<button class="chip mini" data-act="postpone" data-id="${t.id}">Mañana${I.der}</button>`
+    : `<button class="icon-btn more" data-act="editTask" data-id="${t.id}" aria-label="Opciones de ${esc(t.title)}">${I.puntos}</button>`;
+  return `<div class="task${t.done ? ' done' : ''}${st === 'vencida' ? ' vieja' : ''}${t.prio === 'alta' ? ' alta' : ''}${pop}">
+    <button class="tcheck" data-act="toggleTask" data-id="${t.id}" aria-pressed="${!!t.done}" aria-label="${t.done ? 'Desmarcar' : 'Marcar hecha'}: ${esc(t.title)}"><span class="check" aria-hidden="true">${I.tilde}</span></button>
+    <button class="tbody" data-act="editTask" data-id="${t.id}"><span class="name">${t.prio === 'alta' ? '<i class="star" aria-label="Importante">✦</i>' : ''}${esc(t.title)}</span>${meta.length ? `<span class="meta">${meta.join('')}</span>` : ''}</button>
+    ${fin}</div>`;
+}
+function tareaPreview(txt) {
+  if (!txt || !txt.trim()) return '';
+  const p = tareaDesdeTexto(txt, today(), nowMinutes(), S.settings.taskLists);
+  const partes = [`<b>${esc(p.title)}</b>`, p.date ? esc(cuandoTxt(p.date)) : 'sin fecha'];
+  if (p.time) partes.push(`<span class="num">${p.time}</span>`);
+  if (p.list) partes.push(esc(p.list));
+  if (p.prio === 'alta') partes.push('importante');
+  return '→ ' + partes.join(' · ');
+}
+function tareasHoyCard(k) {
+  const lista = tareasDeHoy(S.tasks, k);
+  const hechasHoy = S.tasks.filter((t) => t.done && t.doneAt === k).length;
+  if (!lista.length && !hechasHoy) return '';
+  const muestra = lista.slice(0, 4);
+  return `<section class="card tasks-hoy"><div class="tasks-h"><h3>Pendientes</h3><span class="muted tiny num">${hechasHoy ? `${hechasHoy} ${hechasHoy === 1 ? 'hecha' : 'hechas'} hoy` : ''}</span></div>
+    ${muestra.length ? `<div class="tlist">${muestra.map((t) => taskRow(t, { compacto: true })).join('')}</div>` : '<p class="muted tiny" style="margin:4px 0 0">Todo hecho por hoy.</p>'}
+    <button class="btn ghost block sm vermas" data-act="tab" data-tab="tareas">${lista.length > muestra.length ? `Ver ${lista.length - muestra.length} más` : 'Ver todas las tareas'}${I.der}</button></section>`;
+}
+function renderTareas() {
+  const k = today();
+  const filtro = ui.tlista || null;
+  const g = agruparTareas(S.tasks, k, filtro);
+  const ls = listas(S.settings.taskLists);
+  const sec = (titulo, items, nota = '') => items.length ? `<div class="section-t">${titulo}<small class="num">${nota || items.length}</small></div><div class="tlist">${items.map((t) => taskRow(t)).join('')}</div>` : '';
+  const pendientes = g.vencida.length + g.hoy.length + g.manana.length + g.proxima.length + g.sinfecha.length;
+  return `<header class="head"><div><div class="eyebrow">Tus pendientes</div><h1>Tareas</h1></div><div class="brand">${esc(APP.name)}</div></header>
+    <form class="quick" id="fTarea" autocomplete="off"><input class="input" id="tText" placeholder="Escribí: llamar a Ari mañana 10" aria-label="Agregar tarea" enterkeyhint="done" maxlength="120" value="${esc(ui.tquick || '')}">
+      <button class="btn primary sm" type="submit" aria-label="Agregar tarea">${I.mas}</button></form>
+    <p class="quick-prev" id="tPrev" aria-live="polite">${tareaPreview(ui.tquick)}</p>
+    <div class="chips filtros"><button class="chip ${filtro ? '' : 'on'}" data-act="tlista" data-v="">Todas</button>${ls.map((l) => `<button class="chip ${filtro === l ? 'on' : ''}" data-act="tlista" data-v="${esc(l)}">${esc(l)}</button>`).join('')}</div>
+    ${pendientes ? '' : `<div class="card empty"><b>${filtro ? 'Nada en esta lista' : 'Nada pendiente'}</b>Escribí arriba lo que tengas que hacer.</div>`}
+    ${sec('Quedaron pendientes', g.vencida, 'sin culpa')}
+    ${sec('Hoy', g.hoy)}
+    ${sec('Mañana', g.manana)}
+    ${sec('Próximas', g.proxima)}
+    ${sec('Cuando puedas', g.sinfecha)}
+    ${g.hecha.length ? `<details class="other"><summary>Hechas · ${g.hecha.length}${I.abajo}</summary><div class="tlist">${g.hecha.slice(0, 30).map((t) => taskRow(t)).join('')}</div></details>` : ''}
+    <p class="help">Tip: sumá <b>#liga</b> para la lista o “importante” para marcarla. Con hora, aparece en la Agenda.</p>
+    <div class="set-list" style="margin-top:14px"><div class="set-row"><span class="lbl"><b>¿Venís de otra app?</b><span>Importá tus tareas desde un CSV</span></span><label class="btn sm">Importar<input type="file" accept=".csv,text/csv,text/plain" data-set="impTareas" class="sr"></label></div></div>
+    <p class="help">Columnas que entiende: título, fecha, hora, lista, prioridad y estado (en cualquier orden).</p>`;
+}
+function taskForm(id) {
+  const t = id ? S.tasks.find((x) => x.id === id) : { title: '', date: today(), time: null, prio: 'normal', list: null };
+  if (!t) return;
+  const ls = listas(S.settings.taskLists);
+  openSheet(`<h2><span>${id ? 'Tarea' : 'Nueva tarea'}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <form id="fTask" data-id="${id || ''}">
+      <div class="field"><label for="kTitle">Qué</label><input class="input" id="kTitle" value="${esc(t.title)}" maxlength="80" required enterkeyhint="done"></div>
+      <div class="two"><div class="field"><label for="kDate">Día</label><input class="input" id="kDate" type="date" value="${t.date || ''}"></div>
+        <div class="field"><label for="kTime">Hora</label><input class="input" id="kTime" type="time" value="${t.time || ''}"></div></div>
+      <p class="help" style="margin-top:-10px;margin-bottom:14px">Sin día queda en “Cuando puedas”. Con hora, aparece en la Agenda.</p>
+      <div class="field"><span class="lb">Prioridad</span>${segHTML('kprio', [['normal', 'Normal'], ['alta', 'Importante']], t.prio || 'normal')}</div>
+      <div class="field"><span class="lb">Lista</span><div class="chips pick" data-group="klist"><button type="button" class="chip" data-pick="" data-v="" aria-pressed="${!t.list}">Ninguna</button>${ls.map((l) => `<button type="button" class="chip" data-pick="${esc(l)}" data-v="${esc(l)}" aria-pressed="${t.list === l}">${esc(l)}</button>`).join('')}</div>
+        <input class="input" id="kNewList" maxlength="20" placeholder="O creá una lista nueva"></div>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
+        ${id && !t.done ? `<button class="btn block" type="button" data-act="postpone" data-id="${id}">Pasar a mañana</button>` : ''}
+        ${id ? `<button class="btn block" type="button" data-act="toggleTask" data-id="${id}">${t.done ? 'Desmarcar' : 'Marcar hecha'}</button><button class="btn danger block" type="button" data-act="delTask" data-id="${id}">Borrar</button>` : ''}</div>
+    </form>`);
+}
+function saveTask(form) {
+  const id = form.dataset.id;
+  const title = form.querySelector('#kTitle').value.trim();
+  if (!title) { form.querySelector('#kTitle').focus(); return; }
+  const nueva = form.querySelector('#kNewList').value.trim().slice(0, 20);
+  let list = pressed('klist')[0] || null;
+  if (nueva) {
+    list = listas(S.settings.taskLists).find((l) => l.toLowerCase() === nueva.toLowerCase()) || nueva;
+    if (!listas(S.settings.taskLists).includes(list)) S.settings.taskLists.push(list);
+  }
+  const data = { title, date: form.querySelector('#kDate').value || null, time: form.querySelector('#kTime').value || null, prio: pressed('kprio')[0] || 'normal', list };
+  if (id) Object.assign(S.tasks.find((x) => x.id === id), data);
+  else S.tasks.push({ id: newId('t'), done: false, doneAt: null, created: today(), ...data });
+  commit(); closeSheet(); keepScroll(); toast(id ? 'Tarea actualizada' : 'Tarea agregada');
+}
+function saveTareaRapida(form) {
+  const txt = form.querySelector('#tText').value.trim();
+  if (!txt) return;
+  const p = tareaDesdeTexto(txt, today(), nowMinutes(), S.settings.taskLists);
+  if (p.list && !listas(S.settings.taskLists).includes(p.list)) S.settings.taskLists.push(p.list);
+  const t = { id: newId('t'), ...p, done: false, doneAt: null, created: today() };
+  S.tasks.push(t);
+  commit();
+  ui.tquick = '';
+  form.querySelector('#tText').blur();
+  render();
+  toast(`Anotada: ${t.title}${t.date ? ' · ' + cuandoTxt(t.date) : ''}`, () => { S.tasks = S.tasks.filter((x) => x !== t); commit(); ui.tquick = txt; render(); });
+}
+const keepScroll = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
+
+// ---------- GASTOS ----------
+const CAT_HEX = { comida: '#E07B39', transporte: '#2B7FD9', canchas: '#2F9E62', casa: '#C9A227', salud: '#14A3A3', ocio: '#8B5CF6', trabajo: '#D94F70', otros: '#6B7280' };
+function catColor(id) {
+  if (CAT_HEX[id]) return CAT_HEX[id];
+  const i = (S.settings.expenseCats || []).findIndex((c) => c.id === id);
+  return COLORES[(i < 0 ? 7 : i) % COLORES.length];
+}
+const mesNombre = (ym) => { const [y, m] = ym.split('-').map(Number); return `${cap(MESES[m - 1])} ${y}`; };
+function dona(r) {
+  const R = 46, C = 2 * Math.PI * R;
+  let acc = 0;
+  const segs = r.gastos ? r.porCat.map((x) => {
+    const len = Math.max(0, x.pct * C - (r.porCat.length > 1 ? 2.5 : 0));
+    const s = `<circle cx="60" cy="60" r="${R}" fill="none" stroke-width="13" style="--c:${catColor(x.cat)}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}"/>`;
+    acc += x.pct * C;
+    return s;
+  }).join('') : '';
+  return `<div class="dona" role="img" aria-label="Gastado ${formatARS(r.gastos)}"><svg viewBox="0 0 120 120"><circle class="d-bg" cx="60" cy="60" r="${R}" fill="none" stroke-width="13"/>${segs}</svg>
+    <div class="d-lbl"><span>Gastado</span><b class="num">${formatARS(r.gastos)}</b></div></div>`;
+}
+function renderGastos() {
+  const t = today();
+  const ym = ui.mes || mesDe(t);
+  const esteMes = ym === mesDe(t);
+  const r = resumenMes(S.expenses, ym);
+  const propias = S.settings.expenseCats;
+  const budgets = S.settings.budgets || {};
+  const filasCat = [...r.porCat];
+  for (const c of Object.keys(budgets)) if (budgets[c] && !filasCat.some((x) => x.cat === c)) filasCat.push({ cat: c, total: 0, pct: 0 });
+  const catRows = filasCat.map((x) => {
+    const c = catDe(x.cat, propias);
+    const p = presupuesto(x.total, budgets[x.cat]);
+    const ancho = Math.min(100, Math.round((p ? p.pct : x.pct) * 100));
+    const nota = p ? (p.pasado ? `Te pasaste ${formatARS(-p.resto).replace('−', '')}` : `${Math.round(p.pct * 100)}% de ${formatARS(p.tope)}`) : `${Math.round(x.pct * 100)}% del mes`;
+    return `<button class="gcatrow${p && p.pasado ? ' pasado' : ''}" style="--c:${catColor(x.cat)}" data-act="budget" data-id="${esc(x.cat)}">
+      <span class="ico" aria-hidden="true">${c.emoji}</span><span class="grow"><span class="gl"><b>${esc(c.name)}</b><b class="num">${formatARS(x.total)}</b></span>
+      <span class="bar"><i style="width:${ancho}%"></i></span><span class="gn">${nota}${p ? '' : ' · <u>Poner tope</u>'}</span></span></button>`;
+  }).join('');
+  const dias = r.porDia.map((d) => `<div class="gday"><span>${esc(diaGasto(d.date))}</span><span class="num">${d.gastos ? '−' + formatARS(d.gastos) : ''}${d.ingresos ? ` <em>+${formatARS(d.ingresos)}</em>` : ''}</span></div>
+    <div class="set-list movs">${d.items.map((x) => { const c = catDe(x.cat, propias); return `<button class="set-row mov${x.kind === 'ingreso' ? ' ing' : ''}" style="--c:${catColor(x.cat)}" data-act="editGasto" data-id="${x.id}"><span class="ico" aria-hidden="true">${c.emoji}</span>
+      <span class="lbl"><b>${esc(x.note || c.name)}</b><span>${x.note ? esc(c.name) : x.kind === 'ingreso' ? 'Ingreso' : 'Gasto'}</span></span><span class="monto-r num">${x.kind === 'ingreso' ? '+' : '−'}${formatARS(x.amount)}</span></button>`; }).join('')}</div>`).join('');
+  return `<header class="head"><div><div class="eyebrow">Tu plata</div><h1>Gastos</h1></div><div class="brand">${esc(APP.name)}</div></header>
+    <div class="daynav"><button class="icon-btn" data-act="mes" data-d="-1" aria-label="Mes anterior">${I.izq}</button>
+      <button class="lbl" data-act="mes" data-d="0">${mesNombre(ym)}<small>${esteMes ? 'Este mes' : 'Volver a este mes'}</small></button>
+      <button class="icon-btn" data-act="mes" data-d="1" aria-label="Mes siguiente" ${esteMes ? 'disabled style="opacity:.3"' : ''}>${I.der}</button></div>
+    <section class="card gsum">${dona(r)}<div class="g-top">${r.porCat.slice(0, 4).map((x) => { const c = catDe(x.cat, propias); return `<span style="--c:${catColor(x.cat)}"><i></i>${esc(c.name)}<b class="num">${Math.round(x.pct * 100)}%</b></span>`; }).join('') || '<span class="muted">Todavía sin gastos este mes</span>'}</div>
+      ${r.ingresos ? `<div class="g-bal"><span>Ingresos <b class="num">+${formatARS(r.ingresos)}</b></span><span>Balance <b class="num">${formatARS(r.balance)}</b></span></div>` : ''}</section>
+    ${catRows ? `<div class="section-t">Por categoría<small>tocá para poner un tope</small></div><div class="gcats-l">${catRows}</div>` : ''}
+    <div class="section-t">Movimientos<small class="num">${r.cantidad || ''}</small></div>
+    ${dias || '<div class="card empty"><b>Sin movimientos</b>Tocá “Anotar” para sumar el primero.</div>'}
+    <div class="set-list" style="margin-top:22px"><div class="set-row"><span class="lbl"><b>Planilla</b><span>Exportá o traé gastos de otra app</span></span>
+      <button class="btn sm" data-act="gastosCSV">Exportar</button><label class="btn sm ghost">Importar<input type="file" accept=".csv,text/csv,text/plain" data-set="impGastos" class="sr"></label></div></div>
+    <p class="help">El CSV puede tener fecha, descripción, monto y categoría, en cualquier orden. Los montos negativos se toman como gastos.</p>`;
+}
+function diaGasto(k) {
+  const d = diffDays(k, today());
+  const [, mm, dd] = k.split('-').map(Number);
+  if (d === 0) return `Hoy · ${DIAS_LARGO[weekday(k)]} ${dd}`;
+  if (d === 1) return `Ayer · ${DIAS_LARGO[weekday(k)]} ${dd}`;
+  return `${cap(DIAS_LARGO[weekday(k)])} ${dd}/${mm}`;
+}
+function gastoSheet(id) {
+  const x = id ? S.expenses.find((e) => e.id === id) : null;
+  if (id && !x) return;
+  ui.g = { monto: x ? String(Math.round(x.amount)) : '' };
+  const cats = categorias(S.settings.expenseCats);
+  const cat = x ? x.cat : null;
+  openSheet(`<h2><span>${id ? 'Movimiento' : 'Anotar'}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    ${segHTML('gkind', [['gasto', 'Gasto'], ['ingreso', 'Ingreso']], x ? x.kind : 'gasto')}
+    <div class="monto num" id="gMonto" aria-live="polite">${formatARS(Number(ui.g.monto || 0))}</div>
+    <div class="gcats" data-group="gcat">${cats.map((c) => `<button type="button" data-pick="${esc(c.id)}" data-v="${esc(c.id)}" aria-pressed="${c.id === cat}" style="--c:${catColor(c.id)}"><span aria-hidden="true">${c.emoji}</span><b>${esc(c.name)}</b></button>`).join('')}</div>
+    <input class="input gnueva" id="gNuevaCat" maxlength="20" placeholder="Otra categoría (ej. Mascotas)">
+    <div class="pad">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'x'].map((k) => `<button type="button" data-act="key" data-k="${k}" ${k === 'x' ? 'aria-label="Borrar"' : ''}>${k === 'x' ? I.borrar : k}</button>`).join('')}</div>
+    <div class="two"><div class="field"><label for="gNote">Nota</label><input class="input" id="gNote" maxlength="80" placeholder="Opcional" value="${esc(x ? x.note : '')}"></div>
+      <div class="field"><label for="gDate">Día</label><input class="input" id="gDate" type="date" value="${x ? x.date : today()}"></div></div>
+    <div class="actions gsave"><button class="btn primary block" data-act="saveGasto" data-id="${id || ''}">Guardar</button>
+      ${id ? `<button class="btn danger block" data-act="delGasto" data-id="${id}">Borrar</button>` : ''}</div>`);
+}
+function teclaMonto(k) {
+  if (!ui.g) return;
+  let m = ui.g.monto || '';
+  if (k === 'x') m = m.slice(0, -1);
+  else if (m.length < 10) m = (m + k).replace(/^0+/, '');
+  ui.g.monto = m.slice(0, 10);
+  const el = document.getElementById('gMonto');
+  if (el) { el.textContent = formatARS(Number(ui.g.monto || 0)); el.classList.remove('tic'); void el.offsetWidth; el.classList.add('tic'); }
+}
+function saveGasto(id) {
+  const amount = Number(ui.g && ui.g.monto);
+  if (!amount) { toast('Poné el monto con el teclado'); return; }
+  let cat = pressed('gcat')[0] || null;
+  const nueva = (sheet.querySelector('#gNuevaCat').value || '').trim().slice(0, 20);
+  if (nueva) {
+    const exacta = categorias(S.settings.expenseCats).find((c) => c.name.toLowerCase() === nueva.toLowerCase());
+    if (exacta) cat = exacta.id;
+    else { const c = { id: 'c-' + newId(''), name: cap(nueva), emoji: '🏷️' }; S.settings.expenseCats.push(c); cat = c.id; }
+  }
+  const kind = pressed('gkind')[0] || 'gasto';
+  if (!cat) cat = kind === 'ingreso' ? 'trabajo' : 'otros';
+  const data = { kind, amount, cat, note: sheet.querySelector('#gNote').value.trim().slice(0, 80), date: sheet.querySelector('#gDate').value || today() };
+  let nuevo = null;
+  if (id) Object.assign(S.expenses.find((e) => e.id === id), data);
+  else { nuevo = { id: newId('g'), created: new Date().toISOString(), ...data }; S.expenses.push(nuevo); }
+  commit(); closeSheet(); ui.mes = mesDe(data.date); ui.g = null; keepScroll();
+  const c = catDe(cat, S.settings.expenseCats);
+  toast(`${id ? 'Guardado' : 'Anotado'}: ${formatARS(amount)} · ${c.name}`, nuevo ? () => { S.expenses = S.expenses.filter((e) => e !== nuevo); commit(); render(); } : undefined);
+}
+function budgetSheet(cat) {
+  const c = catDe(cat, S.settings.expenseCats);
+  const tope = (S.settings.budgets || {})[cat];
+  openSheet(`<h2><span>${c.emoji} ${esc(c.name)}</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <p class="muted" style="margin-top:-6px">Un tope mensual para esta categoría. Es solo una guía: te muestra cuánto vas, sin alarmas.</p>
+    <form id="fBudget" data-id="${esc(cat)}"><div class="field"><label for="bTope">Tope por mes</label><input class="input" id="bTope" inputmode="numeric" placeholder="Ej.: 80.000" value="${tope ? formatARS(tope).replace('$ ', '') : ''}" enterkeyhint="done"></div>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>${tope ? '<button class="btn ghost block" type="button" data-act="budgetOff" data-id="' + esc(cat) + '">Quitar tope</button>' : ''}</div></form>`);
+}
+function importar(tipo, texto) {
+  const t = today();
+  if (tipo === 'tareas') {
+    const r = importarTareas(texto, { propias: S.settings.taskLists });
+    const nuevos = r.items.map((x) => ({ id: newId('t'), ...x, doneAt: x.done ? (x.date || t) : null, created: t }));
+    for (const x of nuevos) if (x.list && !listas(S.settings.taskLists).includes(x.list)) S.settings.taskLists.push(x.list);
+    S.tasks.push(...nuevos);
+    commit(); render();
+    toast(nuevos.length ? `${nuevos.length} ${nuevos.length === 1 ? 'tarea importada' : 'tareas importadas'}${r.errores.length ? ` · ${r.errores.length} con problemas` : ''}` : (r.errores[0] || 'No encontré tareas en el archivo'),
+      nuevos.length ? () => { const ids = new Set(nuevos.map((x) => x.id)); S.tasks = S.tasks.filter((x) => !ids.has(x.id)); commit(); render(); } : undefined);
+  } else {
+    const r = importarGastos(texto, { propias: S.settings.expenseCats, today: t });
+    const nuevos = r.items.map((x, i) => ({ id: newId('g'), created: new Date(Date.now() - i).toISOString(), ...x }));
+    S.expenses.push(...nuevos);
+    if (nuevos.length) ui.mes = mesDe(nuevos.map((x) => x.date).sort().pop());
+    commit(); render();
+    toast(nuevos.length ? `${nuevos.length} ${nuevos.length === 1 ? 'movimiento importado' : 'movimientos importados'}${r.errores.length ? ` · ${r.errores.length} con problemas` : ''}` : (r.errores[0] || 'No encontré movimientos en el archivo'),
+      nuevos.length ? () => { const ids = new Set(nuevos.map((x) => x.id)); S.expenses = S.expenses.filter((x) => !ids.has(x.id)); commit(); render(); } : undefined);
+  }
 }
 
 // ---------- Hojas ----------
@@ -936,7 +1210,51 @@ function download(name, text, type) {
 
 // ---------- Toques ----------
 const actions = {
-  tab: (el) => { ui.tab = el.dataset.tab; if (ui.tab === 'agenda') { ui.scrollNow = true; } window.scrollTo({ top: 0 }); render(); },
+  tab: (el) => {
+    let t = el.dataset.tab;
+    if (t === 'mas') t = ui.mas || 'semana';
+    if (t === 'semana' || t === 'ajustes') ui.mas = t;
+    ui.tab = t; if (ui.tab === 'agenda') { ui.scrollNow = true; } window.scrollTo({ top: 0 }); render();
+  },
+  toggleTask: (el) => {
+    const t = S.tasks.find((x) => x.id === el.dataset.id); if (!t) return;
+    const antes = { done: t.done, doneAt: t.doneAt };
+    t.done = !t.done; t.doneAt = t.done ? today() : null;
+    if (t.done) { ui.popTask = t.id; try { navigator.vibrate && navigator.vibrate(12); } catch { /* */ } }
+    commit();
+    if (document.body.classList.contains('open')) closeSheet();
+    keepScroll(); ui.popTask = null;
+    toast(t.done ? `${t.title} ✓` : `${t.title}: vuelve a pendientes`, () => { Object.assign(t, antes); commit(); keepScroll(); });
+  },
+  postpone: (el) => {
+    const t = S.tasks.find((x) => x.id === el.dataset.id); if (!t) return;
+    const antes = t.date;
+    Object.assign(t, posponer(t, today()));
+    commit(); if (document.body.classList.contains('open')) closeSheet(); keepScroll();
+    toast(`${t.title}: pasa a mañana`, () => { t.date = antes; commit(); keepScroll(); });
+  },
+  editTask: (el) => taskForm(el.dataset.id),
+  delTask: (el) => {
+    const i = S.tasks.findIndex((x) => x.id === el.dataset.id); if (i < 0) return;
+    const [t] = S.tasks.splice(i, 1);
+    commit(); closeSheet(); keepScroll();
+    toast('Tarea borrada', () => { S.tasks.splice(i, 0, t); commit(); keepScroll(); });
+  },
+  tlista: (el) => { ui.tlista = el.dataset.v || null; keepScroll(); },
+  mes: (el) => { const d = Number(el.dataset.d); ui.mes = d ? mesSiguiente(ui.mes || mesDe(today()), d) : null; render(); },
+  newGasto: () => gastoSheet(null),
+  editGasto: (el) => gastoSheet(el.dataset.id),
+  key: (el) => teclaMonto(el.dataset.k),
+  saveGasto: (el) => saveGasto(el.dataset.id || null),
+  delGasto: (el) => {
+    const i = S.expenses.findIndex((x) => x.id === el.dataset.id); if (i < 0) return;
+    const [x] = S.expenses.splice(i, 1);
+    commit(); closeSheet(); keepScroll();
+    toast('Movimiento borrado', () => { S.expenses.splice(i, 0, x); commit(); keepScroll(); });
+  },
+  budget: (el) => budgetSheet(el.dataset.id),
+  budgetOff: (el) => { delete S.settings.budgets[el.dataset.id]; commit(); closeSheet(); keepScroll(); toast('Tope quitado'); },
+  gastosCSV: () => { download(`${APP.name.toLowerCase()}-gastos-${today()}.csv`, gastosCSV(S.expenses, S.settings.expenseCats), 'text/csv'); toast('Planilla exportada'); },
   toggle: (el) => {
     const id = el.dataset.id, k = today();
     const prev = statusOf(S.log, id, k);
@@ -1056,6 +1374,14 @@ document.addEventListener('submit', (e) => {
   if (e.target.id === 'fClass') saveClass(e.target);
   if (e.target.id === 'fAgregar') saveAgregar(e.target);
   if (e.target.id === 'fQuick') saveQuick(e.target);
+  if (e.target.id === 'fTarea') saveTareaRapida(e.target);
+  if (e.target.id === 'fTask') saveTask(e.target);
+  if (e.target.id === 'fBudget') {
+    const v = parseMonto(e.target.querySelector('#bTope').value);
+    const cat = e.target.dataset.id;
+    if (Number.isFinite(v) && v > 0) S.settings.budgets[cat] = Math.round(v); else delete S.settings.budgets[cat];
+    commit(); closeSheet(); keepScroll(); toast('Tope guardado');
+  }
   if (e.target.id === 'fOb0') actions.obNext();
   if (e.target.id === 'fObNuevo') {
     const o = obEstado(), name = e.target.querySelector('#obNuevo').value.trim().slice(0, 40);
@@ -1070,6 +1396,12 @@ document.addEventListener('submit', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'obName') { obEstado().name = e.target.value; return; }
   if (e.target.id === 'obNuevo') { obEstado().nuevo = e.target.value; return; }
+  if (e.target.id === 'tText') {
+    ui.tquick = e.target.value;
+    const p = document.getElementById('tPrev');
+    if (p) p.innerHTML = tareaPreview(ui.tquick);
+    return;
+  }
   if (e.target.id !== 'qText') return;
   ui.quick = e.target.value;
   const p = document.getElementById('qPrev');
@@ -1104,6 +1436,13 @@ document.addEventListener('change', async (e) => {
     if (r.on && typeof Notification !== 'undefined' && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch { /* */ } }
     if (r.on && (typeof Notification === 'undefined' || Notification.permission !== 'granted')) toast('Guardado. Para que lleguen, instalá la app y dale permiso.');
   }
+  if (k === 'impTareas' || k === 'impGastos') {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try { importar(k === 'impTareas' ? 'tareas' : 'gastos', await file.text()); } catch { toast('No se pudo leer el archivo'); }
+    e.target.value = '';
+    return;
+  }
   if (k === 'import') {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -1113,7 +1452,14 @@ document.addEventListener('change', async (e) => {
   commit(); render();
 });
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeSheet(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('open')) closeSheet();
+  // Teclado físico en la hoja de gastos (si no estás escribiendo en un campo)
+  if (document.body.classList.contains('open') && document.getElementById('gMonto') && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) {
+    if (/^\d$/.test(e.key)) { teclaMonto(e.key); e.preventDefault(); }
+    else if (e.key === 'Backspace') { teclaMonto('x'); e.preventDefault(); }
+  }
+});
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); pushLuego(500); } });
 setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
@@ -1123,7 +1469,7 @@ if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http'
 }
 
 // Para pruebas automáticas
-window.__rutina = { get S() { return S; }, get cal() { return cal; }, ui, render, analyze, today };
+window.__rutina = { get S() { return S; }, get cal() { return cal; }, ui, render, analyze, today, importar };
 
 const pedido = leerAgregar();
 if (pedido) ui.tab = 'agenda';
