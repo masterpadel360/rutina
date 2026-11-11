@@ -66,11 +66,19 @@ export function fechaLarga(k) {
 }
 
 // ---------- Frecuencia ----------
-// freq: {type:'daily'} | {type:'days', days:[0..6]} | {type:'times', n}
+// freq: {type:'daily'} | {type:'days', days:[0..6], cada?:2, desde?:'AAAA-MM-DD'} | {type:'times', n}
 export function isScheduled(h, k) {
   if (h.created && k < h.created) return false;
   const f = h.freq || { type: 'daily' };
-  if (f.type === 'days') return (f.days || []).includes(weekday(k));
+  if (f.type === 'days') {
+    if (!(f.days || []).includes(weekday(k))) return false;
+    // Cada 2 (o más) semanas: toca solo en las semanas que caen en la cuenta desde una fecha conocida.
+    if (f.cada > 1 && f.desde) {
+      const w = Math.round(diffDays(weekStart(f.desde), weekStart(k)) / 7);
+      return ((w % f.cada) + f.cada) % f.cada === 0;
+    }
+    return true;
+  }
   return true; // daily y times: cualquier día sirve
 }
 export function statusOf(log, hid, k) {
@@ -80,9 +88,12 @@ export function freqLabel(f) {
   if (!f || f.type === 'daily') return 'Todos los días';
   if (f.type === 'times') return f.n === 1 ? '1 vez por semana' : `${f.n} veces por semana`;
   const d = [...(f.days || [])].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
-  if (d.length === 7) return 'Todos los días';
-  if (d.length === 5 && !d.includes(0) && !d.includes(6)) return 'Lunes a viernes';
-  return d.map((x) => DIAS[x]).join(' · ');
+  if (!(f.cada > 1)) {
+    if (d.length === 7) return 'Todos los días';
+    if (d.length === 5 && !d.includes(0) && !d.includes(6)) return 'Lunes a viernes';
+  }
+  const base = d.map((x) => DIAS[x]).join(' · ');
+  return f.cada > 1 ? `${base} · cada ${f.cada} semanas` : base;
 }
 
 // Cuántas veces se hizo en la semana de k (opcionalmente solo antes de 'antes').

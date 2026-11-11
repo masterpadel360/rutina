@@ -983,7 +983,9 @@ function habitForm(id) {
       <div class="field"><span class="lb">Ícono</span><div class="emojis" data-group="icon">${EMOJIS.map((e) => `<button type="button" data-pick="${e}" data-v="${e}" aria-pressed="${e === h.icon}">${e}</button>`).join('')}</div></div>
       <div class="field"><span class="lb">Color</span>${swHTML(h.color)}</div>
       <div class="field"><span class="lb">Frecuencia</span>${segHTML('freq', [['daily', 'Todos los días'], ['days', 'Días fijos'], ['times', 'Veces x sem.']], f.type)}</div>
-      <div class="field" data-show="days" ${f.type === 'days' ? '' : 'hidden'}><span class="lb">Qué días</span>${daysHTML('days', f.type === 'days' ? f.days : [1, 2, 3, 4, 5])}</div>
+      <div class="field" data-show="days" ${f.type === 'days' ? '' : 'hidden'}><span class="lb">Qué días</span>${daysHTML('days', f.type === 'days' ? f.days : [1, 2, 3, 4, 5])}
+        <div style="margin-top:10px">${segHTML('cada', [['1', 'Cada semana'], ['2', 'Cada 2 semanas']], f.cada || 1)}</div>
+        <label class="lb" for="hDesde" style="margin-top:10px">Si es cada 2 semanas: una fecha en que te toca</label><input class="input" id="hDesde" type="date" value="${f.desde || today()}"></div>
       <div class="field" data-show="times" ${f.type === 'times' ? '' : 'hidden'}><span class="lb">Cuántas veces por semana</span>
         <div class="stepper"><button type="button" data-act="step" data-d="-1" aria-label="Menos">−</button><b class="num" id="hN">${f.type === 'times' ? f.n : 3}</b><button type="button" data-act="step" data-d="1" aria-label="Más">+</button></div></div>
       <div class="two"><div class="field"><label for="hTime">Hora (opcional)</label><input class="input" id="hTime" type="time" value="${h.time || ''}"></div>
@@ -1009,7 +1011,8 @@ function saveHabit(form) {
   const name = form.querySelector('#hName').value.trim();
   if (!name) { form.querySelector('#hName').focus(); return; }
   const type = pressed('freq')[0] || 'daily';
-  const freq = type === 'days' ? { type, days: pressed('days').map(Number) } : type === 'times' ? { type, n: Number(form.querySelector('#hN').textContent) } : { type: 'daily' };
+  const cada = Number(pressed('cada')[0] || 1);
+  const freq = type === 'days' ? { type, days: pressed('days').map(Number), ...(cada > 1 ? { cada, desde: form.querySelector('#hDesde').value || today() } : {}) } : type === 'times' ? { type, n: Number(form.querySelector('#hN').textContent) } : { type: 'daily' };
   if (type === 'days' && !freq.days.length) { toast('Elegí al menos un día'); return; }
   const data = { name, icon: pressed('icon')[0] || '🎯', color: pressed('color')[0] || COLORES[0], freq, time: form.querySelector('#hTime').value || null, dur: Number(form.querySelector('#hDur').value) || 30, part: pressed('part')[0] || null };
   const remOn = form.querySelector('#hRemOn').checked, remTime = form.querySelector('#hRemTime').value || null;
@@ -1234,10 +1237,10 @@ function icsText() {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
   const d0 = today().replace(/-/g, '');
   const BY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-  const ev = (uid, title, hhmm, rule, dur = 15) => {
+  const ev = (uid, title, hhmm, rule, dur = 15, dia = d0) => {
     const s = hhmm.replace(':', '') + '00';
     const e = fromMin(toMin(hhmm) + dur).replace(':', '') + '00';
-    return ['BEGIN:VEVENT', `UID:${uid}@rutina`, `DTSTAMP:${stamp}`, `DTSTART;TZID=America/Argentina/Cordoba:${d0}T${s}`, `DTEND;TZID=America/Argentina/Cordoba:${d0}T${e}`, `RRULE:${rule}`, `SUMMARY:${title}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n');
+    return ['BEGIN:VEVENT', `UID:${uid}@rutina`, `DTSTAMP:${stamp}`, `DTSTART;TZID=America/Argentina/Cordoba:${dia}T${s}`, `DTEND;TZID=America/Argentina/Cordoba:${dia}T${e}`, `RRULE:${rule}`, `SUMMARY:${title}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n');
   };
   const out = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${APP.name}//ES`, 'CALSCALE:GREGORIAN',
     'BEGIN:VTIMEZONE', 'TZID:America/Argentina/Cordoba', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE'];
@@ -1246,8 +1249,9 @@ function icsText() {
   for (const h of habitsActive()) {
     const a = avisoHabito(h, r);
     if (!a.on) continue;
-    const rule = h.freq.type === 'days' ? `FREQ=WEEKLY;BYDAY=${h.freq.days.map((d) => BY[d]).join(',')}` : 'FREQ=DAILY';
-    out.push(ev(h.id, `${h.icon} ${h.name}`, a.time, rule, Number(h.dur) || 15));
+    const f = h.freq, cada = f.type === 'days' && f.cada > 1 && f.desde ? f.cada : 1;
+    const rule = f.type === 'days' ? `FREQ=WEEKLY;${cada > 1 ? `INTERVAL=${cada};` : ''}BYDAY=${f.days.map((d) => BY[d]).join(',')}` : 'FREQ=DAILY';
+    out.push(ev(h.id, `${h.icon} ${h.name}`, a.time, rule, Number(h.dur) || 15, cada > 1 ? (() => { const ws = weekStart(f.desde); for (let i = 0; i < 7; i++) { const k = addDays(ws, i); if (f.days.includes(weekday(k))) return k.replace(/-/g, ''); } return d0; })() : d0));
   }
   out.push('END:VCALENDAR');
   return out.join('\r\n');
