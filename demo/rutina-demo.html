@@ -2259,10 +2259,9 @@ async function siriSync({ avisar = false } = {}) {
     if (!r.ok || !j || !Array.isArray(j.items)) throw new Error(r.status === 401 ? 'La clave de Siri no coincide' : 'No se pudo leer lo de Siri');
     const vistos = new Set(S.settings.siri.vistos || []);
     const nuevos = j.items.filter((x) => x && x.id && !vistos.has(x.id));
-    let ult = null;
+    const hechos = [];
     for (const it of nuevos) {
-      const p = parseAgregar(it.texto, today(), nowMinutes());
-      ult = addBlockFrom({ ...p, color: COLORES[2] });
+      try { hechos.push(siriGuardar(it.texto)); } catch { /* texto raro: se ignora */ }
       vistos.add(it.id);
     }
     S.settings.siri.vistos = [...vistos].slice(-200);
@@ -2271,12 +2270,47 @@ async function siriSync({ avisar = false } = {}) {
     if (j.items.length) fetch(`${SIRI_URL}/buzon/ok`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t, ids: j.items.map((x) => x.id) }) }).catch(() => {});
     if (nuevos.length) {
       if (!document.body.classList.contains('open') && !typing()) render();
-      toast(nuevos.length === 1 ? `Siri agendó: ${ult.title} · ${cuandoTxt(ult.date)} ${ult.start}` : `Siri agendó ${nuevos.length} cosas`);
+      toast(hechos.length === 1 ? `Siri: ${hechos[0]}` : `Siri anotó ${hechos.length} cosas`);
     } else if (avisar) toast('Conectado con Siri. Por ahora no hay nada nuevo.');
   } catch (err) {
     siriEstadoTxt = err && err.name === 'TypeError' ? 'Sin conexión' : (err && err.message) || 'Error';
     if (avisar) toast(siriEstadoTxt);
   } finally { siriBusy = false; }
+}
+
+// Decide qué es lo dictado: gasto («gasté 5000 en nafta»), tarea («anotá…», «tengo que…», o sin hora) o agenda (con hora).
+const sinTildes = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function siriGuardar(texto) {
+  const orig = String(texto || '').trim();
+  const n = sinTildes(orig);
+  // Gasto
+  const mg = n.match(/^(gaste|pague|gasto|compre)\b\s*(.*)$/);
+  if (mg) {
+    const resto = orig.slice(orig.length - mg[2].length);
+    const mm = resto.match(/\$?\s*(\d[\d.,]*)\s*(mil|lucas?|k)?/i);
+    let amount = mm ? parseMonto(mm[1]) : NaN;
+    if (mm && mm[2] && Number.isFinite(amount)) amount *= 1000;
+    if (Number.isFinite(amount) && amount > 0) {
+      const note = (mm ? resto.replace(mm[0], ' ') : resto).replace(/^\s*(pesos)?\s*(en|de|por|para)?\s+/i, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      const cat = catPorNombre(note, S.settings.expenseCats) || 'otros';
+      S.expenses.push({ id: newId('g'), created: new Date().toISOString(), kind: 'gasto', amount, cat, note: note ? note.charAt(0).toUpperCase() + note.slice(1) : '', date: today() });
+      return `gasto ${formatARS(amount)}${note ? ' · ' + note : ''}`;
+    }
+  }
+  // Tarea
+  // «anotá / tarea» = siempre tarea. «recordame / tengo que» = tarea solo si no dice hora (con hora va a la agenda).
+  const mt = n.match(/^(anota|anotame|tarea|recorda|recordame|tengo que|tenia que|hay que|tenes que)\b\s*(que\s+)?/);
+  const fuerte = !!(mt && /^(anota|anotame|tarea)/.test(mt[1]));
+  const limpio = mt ? orig.slice(mt[0].length) : orig;
+  const p = parseAgregar(limpio, today(), nowMinutes());
+  if (fuerte || p.sinHora) {
+    const t = tareaDesdeTexto(limpio, today(), nowMinutes(), S.settings.taskLists);
+    S.tasks.push({ id: newId('t'), ...t, done: false, doneAt: null, created: today() });
+    return `tarea · ${t.title}${t.date ? ' · ' + cuandoTxt(t.date) : ''}`;
+  }
+  // Agenda
+  const b = addBlockFrom({ ...p, color: COLORES[2] });
+  return `agendado · ${b.title} · ${cuandoTxt(b.date)} ${b.start}`;
 }
 
 // ---------- Calendario del iPhone (solo lectura, vía el worker) ----------
@@ -3795,6 +3829,7 @@ setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.cla
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
 setInterval(() => { if (!document.hidden) applyTheme(); }, 60000); // el cielo se mueve aunque estés en Ajustes o con una hoja abierta
 if (DEMO) window.rutinaCielo = applyTheme; // demo: la barrita de hora mueve el cielo
+if (DEMO) window.siriGuardar = siriGuardar; // demo: para probar cómo entiende lo dictado
 
 if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline */ });
