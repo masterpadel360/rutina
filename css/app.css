@@ -1120,3 +1120,15 @@ textarea.input.area { min-height: 68px; padding: 12px 14px; resize: vertical; li
 @media (prefers-reduced-motion: reduce) { .cielo .nubes, .cielo .rayos, .cielo .estrellas { animation: none !important; } }
 /* Con cielo, las tarjetas dejan ver un poco más el cielo de atrás */
 :root[data-cielo="dia"][data-palette="vida"] { --glass-card: rgba(255, 255, 255, .62); }
+
+/* ---------- Botón de micrófono (dictar agenda, tarea o gasto) ---------- */
+.mic-fab {
+  position: fixed; z-index: 15; left: max(var(--gutter), calc(50% - 280px + var(--gutter)));
+  bottom: calc(max(12px, calc(env(safe-area-inset-bottom) - 8px)) + var(--tabs-h) + 14px);
+  width: 56px; height: 56px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: var(--accent-fill, var(--accent)); color: var(--accent-ink); box-shadow: var(--shadow-lg);
+}
+.mic-fab svg { width: 26px; height: 26px; }
+.mic-fab:active { transform: scale(.94); }
+:root[data-palette="vida"] .mic-fab { background: linear-gradient(180deg, #9277F0, var(--accent-fill) 60%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 14px 34px -8px var(--glow-btn), 0 2px 6px rgba(60, 30, 80, .15); }
+body.ob .mic-fab, body.open .mic-fab { display: none; }

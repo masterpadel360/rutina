@@ -1,5 +1,5 @@
 // Modo sin internet: guarda la app y la sirve desde el teléfono. Cambiar VERSION en cada cambio publicado.
-const VERSION = 'rutina-v14';
+const VERSION = 'rutina-v15';
 const FUENTES = 'rutina-fuentes'; // tipografías de Google: se guardan aparte para usarlas sin internet
 const ARCHIVOS = ['./', 'index.html', 'css/app.css', 'js/main.js', 'js/logic.js', 'js/store.js', 'js/agregar.js', 'js/calendario.js', 'js/avisos.js', 'js/finanzas.js', 'js/tareas.js', 'manifest.json', 'icons/icono.svg', 'icons/icono-180.png', 'icons/icono-192.png', 'icons/icono-512.png'];
 

@@ -90,6 +90,44 @@ function siriGuardar(texto) {
   return `agendado · ${b.title} · ${cuandoTxt(b.date)} ${b.start}`;
 }
 
+// ---------- Micrófono: decís lo que sea y se anota donde corresponde (mismas reglas que Siri) ----------
+let dictado = null;
+function dictarSheet() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  openSheet(`<h2><span>¿Qué anoto?</span><button class="icon-btn" data-act="closeSheet" aria-label="Cerrar">${I.cerrar}</button></h2>
+    <form id="fDictar">
+      <div class="field"><label for="dTxt">${SR ? 'Hablá o escribí' : 'Tocá el micrófono del teclado y hablá'}</label>
+        <textarea class="input" id="dTxt" rows="2" maxlength="200" style="min-height:76px;padding-top:12px;resize:none" placeholder="Ej.: dentista mañana a las 15 · anotá comprar pelotas · gasté 5000 en nafta"></textarea></div>
+      <p class="help" id="dEstado" style="margin-top:-6px">Con hora va a la agenda. «Anotá…» o sin hora, a tareas. «Gasté…» con monto, a gastos.</p>
+      <div class="actions"><button class="btn primary block" type="submit">Guardar</button>
+        ${SR ? '<button class="btn block" type="button" data-act="dictarOtra">🎤 Volver a escuchar</button>' : ''}</div>
+    </form>`);
+  const ta = sheet.querySelector('#dTxt');
+  if (SR) escuchar(); else setTimeout(() => ta && ta.focus(), 250);
+}
+function escuchar() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const ta = sheet.querySelector('#dTxt'), est = sheet.querySelector('#dEstado');
+  if (!SR || !ta) return;
+  try { if (dictado) dictado.abort(); } catch { /* */ }
+  const r = new SR();
+  r.lang = 'es-AR'; r.interimResults = true; r.maxAlternatives = 1;
+  r.onresult = (ev) => { ta.value = [...ev.results].map((x) => x[0].transcript).join(' ').trim(); };
+  r.onstart = () => { if (est) est.textContent = '🎤 Te escucho…'; };
+  r.onerror = () => { if (est) est.textContent = 'No pude usar el micrófono: escribilo o usá el micrófono del teclado.'; ta.focus(); };
+  r.onend = () => { if (est && est.textContent.startsWith('🎤')) est.textContent = ta.value ? 'Revisá y tocá Guardar.' : 'No escuché nada. Probá de nuevo o escribilo.'; };
+  dictado = r;
+  try { r.start(); } catch { ta.focus(); }
+}
+function saveDictar(form) {
+  const txt = form.querySelector('#dTxt').value.trim();
+  if (!txt) { form.querySelector('#dTxt').focus(); return; }
+  try { if (dictado) dictado.abort(); } catch { /* */ }
+  const res = siriGuardar(txt);
+  commit(); closeSheet(); render();
+  toast(`Anotado: ${res}`);
+}
+
 // ---------- Calendario del iPhone (solo lectura, vía el worker) ----------
 // Copia aparte de los datos (no va en la copia de seguridad): { at, eventos, error, errorAt }
 const CAL_KEY = 'rutina.calendario';
@@ -176,6 +214,7 @@ root.innerHTML = `
   <nav class="tabs" aria-label="Secciones">
     ${[['hoy', 'Hoy', 'hoy'], ['agenda', 'Agenda', 'agenda'], ['tareas', 'Tareas', 'tareas'], ['gastos', 'Gastos', 'gastos'], ['mas', 'Más', 'menu']].map(([t, n, i]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[i]}<span>${n}</span></button>`).join('')}
   </nav>
+  <button class="mic-fab" data-act="dictar" aria-label="Dictar: agenda, tarea o gasto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
   <button class="btn primary fab" data-act="newBlock" hidden>${I.mas}<span>Bloque</span></button>
   <div class="scrim" data-act="closeSheet"></div>
   <section class="sheet" id="sheet" role="dialog" aria-modal="true"></section>
@@ -1483,6 +1522,8 @@ const actions = {
   resetDemo: () => { S = seedDemo(today()); commit(); ui.tab = 'hoy'; render(); toast('Demo reiniciada'); },
   calEvent: (el) => calEventSheet(el.dataset.id),
   calTest: () => { toast('Probando…'); calSync({ avisar: true, forzar: true }); },
+  dictar: () => dictarSheet(),
+  dictarOtra: () => escuchar(),
   siriTest: () => { toast('Probando…'); siriSync({ avisar: true }).then(() => { if (ui.tab === 'ajustes') render(); }); },
   calRetry: () => calSync({ avisar: true, forzar: true }),
 };
@@ -1508,6 +1549,7 @@ document.addEventListener('submit', (e) => {
   if (e.target.id === 'fBlock') saveBlock(e.target);
   if (e.target.id === 'fClass') saveClass(e.target);
   if (e.target.id === 'fAgregar') saveAgregar(e.target);
+  if (e.target.id === 'fDictar') saveDictar(e.target);
   if (e.target.id === 'fQuick') saveQuick(e.target);
   if (e.target.id === 'fTarea') saveTareaRapida(e.target);
   if (e.target.id === 'fTask') saveTask(e.target);
