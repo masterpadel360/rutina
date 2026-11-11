@@ -214,7 +214,6 @@ root.innerHTML = `
   <nav class="tabs" aria-label="Secciones">
     ${[['hoy', 'Hoy', 'hoy'], ['agenda', 'Agenda', 'agenda'], ['tareas', 'Tareas', 'tareas'], ['gastos', 'Gastos', 'gastos'], ['mas', 'Más', 'menu']].map(([t, n, i]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[i]}<span>${n}</span></button>`).join('')}
   </nav>
-  <button class="mic-fab" data-act="dictar" aria-label="Dictar: agenda, tarea o gasto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
   <button class="btn primary fab" data-act="newBlock" hidden>${I.mas}<span>Bloque</span></button>
   <div class="scrim" data-act="closeSheet"></div>
   <section class="sheet" id="sheet" role="dialog" aria-modal="true"></section>
