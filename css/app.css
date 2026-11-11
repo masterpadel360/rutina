@@ -809,3 +809,88 @@ textarea.input.area { min-height: 68px; padding: 12px 14px; resize: vertical; li
 .task .name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
 .tasks-hoy .task { background: color-mix(in srgb, var(--surface-2) 65%, var(--surface)); }
 .tasks-hoy .task.vieja { background: color-mix(in srgb, var(--butter) 26%, var(--surface)); }
+
+/* ---------- Tema Vida (por defecto): arena cálida, tarjetas blancas, lila/violeta y colores vivos ---------- */
+:root[data-palette="vida"] {
+  --bg: #F1E4CF; --bg-wash: #E3D6F7; --surface: #FFFFFF; --surface-2: #F8F1E6; --surface-3: #EADCC6;
+  --text: #2B2238; --muted: #625468; --faint: #9A8C9C; --line: #EADCC6; --hair: rgba(90, 60, 40, .08);
+  --accent: #6B47D6; --accent-fill: #7350E0; --accent-ink: #FFFFFF; --accent-soft: #EEE6FD;
+  --ring-a: #C9B6F8; --ring-b: #7350E0; --butter: #FFD9BC; --clay: #EE6A0E; --streak: #B5400B;
+  --cal: #E5484D; --now: #F0503E; --danger: #C62F25;
+  --dust: #9A8C9C; --dust-amt: 0%;
+  --h-verde: #18A04E; --h-azul: #2F8CF5; --h-violeta: #8A5CF0; --h-naranja: #EE6A0E; --h-rosa: #E83E8C;
+  --h-dorado: #FFC400; --h-turquesa: #0E9E92; --h-gris: #F0503E; --h-clase: #A8C81A;
+  --shadow-sm: 0 1px 1px rgba(80, 50, 30, .04), 0 6px 18px -8px rgba(80, 50, 30, .16);
+  --shadow: 0 1px 2px rgba(80, 50, 30, .05), 0 14px 34px -14px rgba(80, 50, 30, .24);
+  --shadow-lg: 0 2px 6px rgba(70, 40, 20, .06), 0 24px 60px -20px rgba(70, 40, 20, .32);
+  --glass: rgba(255, 255, 255, .82); --glass-line: rgba(255, 255, 255, .8);
+  --grain-o: .4;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .28 0 0 0 0 .16 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="vida"]:not([data-theme="light"]) {
+    --bg: #1E1424; --bg-wash: #3A2557; --surface: #2A1E33; --surface-2: #33263E; --surface-3: #45354F;
+    --text: #F6EEF8; --muted: #C4B4CC; --faint: #8F7F99; --line: #3D2E48; --hair: rgba(255, 230, 255, .07);
+    --accent: #C3A9FF; --accent-fill: #A584FF; --accent-ink: #1E1424; --accent-soft: #3A2A55;
+    --ring-a: #6B4FC4; --ring-b: #D2BFFF; --butter: #5A3A2A; --clay: #FF9B4A; --streak: #FFB27A;
+    --cal: #FF7B80; --now: #FF8A6E; --danger: #FF8A7A;
+    --shadow-sm: 0 1px 1px rgba(0, 0, 0, .25), 0 6px 16px -8px rgba(0, 0, 0, .5);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 14px 34px -14px rgba(0, 0, 0, .6);
+    --shadow-lg: 0 2px 6px rgba(0, 0, 0, .3), 0 24px 60px -18px rgba(0, 0, 0, .7);
+    --glass: rgba(42, 30, 51, .8); --glass-line: rgba(255, 230, 255, .08);
+    --grain-o: .5;
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .9 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    --h-verde: #18A04E; --h-azul: #2F8CF5; --h-violeta: #8A5CF0; --h-naranja: #EE6A0E; --h-rosa: #E83E8C;
+    --h-dorado: #FFC400; --h-turquesa: #0E9E92; --h-gris: #F0503E; --h-clase: #A8C81A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"][data-palette="vida"] {
+  --bg: #1E1424; --bg-wash: #3A2557; --surface: #2A1E33; --surface-2: #33263E; --surface-3: #45354F;
+  --text: #F6EEF8; --muted: #C4B4CC; --faint: #8F7F99; --line: #3D2E48; --hair: rgba(255, 230, 255, .07);
+  --accent: #C3A9FF; --accent-fill: #A584FF; --accent-ink: #1E1424; --accent-soft: #3A2A55;
+  --ring-a: #6B4FC4; --ring-b: #D2BFFF; --butter: #5A3A2A; --clay: #FF9B4A; --streak: #FFB27A;
+  --cal: #FF7B80; --now: #FF8A6E; --danger: #FF8A7A;
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, .25), 0 6px 16px -8px rgba(0, 0, 0, .5);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 14px 34px -14px rgba(0, 0, 0, .6);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, .3), 0 24px 60px -18px rgba(0, 0, 0, .7);
+  --glass: rgba(42, 30, 51, .8); --glass-line: rgba(255, 230, 255, .08);
+  --h-verde: #18A04E; --h-azul: #2F8CF5; --h-violeta: #8A5CF0; --h-naranja: #EE6A0E; --h-rosa: #E83E8C;
+  --h-dorado: #FFC400; --h-turquesa: #0E9E92; --h-gris: #F0503E; --h-clase: #A8C81A;
+  --grain-o: .5;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .9 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
+/* Vida: chips con tinte fuerte, tildes del color vivo del hábito, tarjetas blancas que resaltan */
+:root[data-palette="vida"] .habit .ico, :root[data-palette="vida"] .streak .ico, :root[data-palette="vida"] .sug .ico,
+:root[data-palette="vida"] .set-row .ico, :root[data-palette="vida"] .gcatrow .ico, :root[data-palette="vida"] .mov .ico {
+  background: color-mix(in srgb, var(--cc) 30%, var(--surface)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 45%, transparent);
+}
+:root[data-palette="vida"] .habit.done { background: color-mix(in srgb, var(--cc) 11%, var(--surface)); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--cc) 35%, transparent); }
+:root[data-palette="vida"] .habit.done .check { background: var(--cc); box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--cc) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, .35); }
+:root[data-palette="vida"] .habit.done .check svg { stroke: #FFFFFF; stroke-width: 3; }
+:root[data-palette="vida"] .check::after { box-shadow: 0 0 0 2px var(--cc); }
+:root[data-palette="vida"] [style*="#C9A227" i] .check svg, :root[data-palette="vida"] [style*="#8FB21C" i] .check svg { stroke: #3A2600 !important; }
+:root[data-palette="vida"] .habit .meta .st { color: var(--streak); }
+:root[data-palette="vida"] .cell.done { box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--cc) 70%, transparent); }
+:root[data-palette="vida"] .hero { background: radial-gradient(120% 120% at 0% 0%, #F1EAFE, transparent 55%), radial-gradient(80% 90% at 110% 110%, #FFE7D6, transparent 60%), var(--surface); }
+:root[data-palette="vida"] .summary { background: radial-gradient(100% 120% at 100% 0%, #FFE7D6, transparent 60%), radial-gradient(90% 100% at 0% 100%, #F1EAFE, transparent 65%), var(--surface); }
+:root[data-palette="vida"] .gsum { background: radial-gradient(110% 120% at 0% 0%, #F1EAFE, transparent 55%), radial-gradient(80% 90% at 110% 110%, #FFE7D6, transparent 60%), var(--surface); }
+@media (prefers-color-scheme: dark) {
+  :root[data-palette="vida"]:not([data-theme="light"]) .hero, :root[data-palette="vida"]:not([data-theme="light"]) .summary, :root[data-palette="vida"]:not([data-theme="light"]) .gsum {
+    background: radial-gradient(120% 120% at 0% 0%, #3E2A63, transparent 55%), radial-gradient(80% 90% at 110% 110%, #4A2A2E, transparent 60%), var(--surface);
+  }
+}
+:root[data-theme="dark"][data-palette="vida"] .hero, :root[data-theme="dark"][data-palette="vida"] .summary, :root[data-theme="dark"][data-palette="vida"] .gsum {
+  background: radial-gradient(120% 120% at 0% 0%, #3E2A63, transparent 55%), radial-gradient(80% 90% at 110% 110%, #4A2A2E, transparent 60%), var(--surface);
+}
+:root[data-palette="vida"] .next:not(.cal) i { background: var(--accent-fill) !important; }
+.tema[data-p="vida"] i { background: conic-gradient(from 200deg, #7350E0 0 25%, #FFC400 0 50%, #2F8CF5 0 75%, #F1E4CF 0); }
+.temas { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.tema { padding: 10px 2px 9px; font-size: 11.5px; }
+.tema i { width: 32px; height: 32px; }
+:root[data-palette="vida"] .ev { background: color-mix(in srgb, var(--cc) 24%, var(--surface)); }
+:root[data-palette="vida"] .ev.habito { background: color-mix(in srgb, var(--cc) 8%, var(--surface)); }
+:root[data-palette="vida"] .ev.cal { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cal) 16%, var(--surface)) 0 6px, color-mix(in srgb, var(--cal) 7%, var(--surface)) 6px 12px); }
+:root[data-palette="vida"] .ev.tarea { background: color-mix(in srgb, var(--accent-fill) 14%, var(--surface)); }
