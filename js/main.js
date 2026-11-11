@@ -1518,6 +1518,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { if
 setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
 setInterval(() => { if (!document.hidden) applyTheme(); }, 60000); // el cielo se mueve aunque estés en Ajustes o con una hoja abierta
+if (DEMO) window.rutinaCielo = applyTheme; // demo: la barrita de hora mueve el cielo
 
 if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline */ });
