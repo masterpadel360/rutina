@@ -93,7 +93,7 @@ const I = {
   cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>',
 };
 const EMOJIS = ['🧘', '🏋️', '🧠', '🗣️', '🎾', '🏃', '💪', '🥗', '😴', '⏰', '📚', '💧', '🚴', '🏊', '🧴', '📖', '✍️', '🙏', '🍎', '📵', '🧹', '💰', '🎯', '📞'];
-const TEMAS = [['cognac', 'Coñac'], ['salvia', 'Salvia'], ['rosa', 'Rosa'], ['arena', 'Arena']];
+const TEMAS = [['arena', 'Arena'], ['cognac', 'Coñac'], ['salvia', 'Salvia'], ['rosa', 'Rosa']];
 const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], ['any', 'Cuando puedas']];
 
 // ---------- Armado ----------
@@ -114,8 +114,8 @@ function applyTheme() {
   const t = S.settings.theme;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
   else document.documentElement.removeAttribute('data-theme');
-  const p = S.settings.palette;
-  if (p && p !== 'cognac') document.documentElement.dataset.palette = p;
+  const p = S.settings.palette || 'arena'; // Arena es el tema por defecto
+  if (p !== 'cognac') document.documentElement.dataset.palette = p;
   else document.documentElement.removeAttribute('data-palette');
 }
 
@@ -625,7 +625,7 @@ function renderAjustes() {
     <div class="set-list">
       <div class="set-row"><span class="lbl"><b>Tu nombre</b></span><input class="input" style="width:150px" data-set="name" value="${esc(S.settings.name)}" maxlength="20" autocomplete="given-name"></div>
       <label class="set-row"><span class="lbl"><b>Agrupar por momento</b><span>Mañana, tarde y noche</span></span><span class="switch"><input type="checkbox" data-set="grouping" ${S.settings.grouping ? 'checked' : ''}><i></i></span></label>
-      <div class="set-row stack"><span class="lbl"><b>Tema</b><span>Los colores de la app</span></span><div class="temas">${TEMAS.map(([v, n]) => `<button class="tema" data-act="palette" data-v="${v}" data-p="${v}" aria-pressed="${(S.settings.palette || 'cognac') === v}"><i aria-hidden="true"></i><span>${n}</span></button>`).join('')}</div></div>
+      <div class="set-row stack"><span class="lbl"><b>Tema</b><span>Los colores de la app</span></span><div class="temas">${TEMAS.map(([v, n]) => `<button class="tema" data-act="palette" data-v="${v}" data-p="${v}" aria-pressed="${(S.settings.palette || 'arena') === v}"><i aria-hidden="true"></i><span>${n}</span></button>`).join('')}</div></div>
       <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
     </div>
 
