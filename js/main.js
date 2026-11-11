@@ -99,6 +99,7 @@ const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], [
 // ---------- Armado ----------
 const root = document.getElementById('app');
 root.innerHTML = `
+  <div class="cielo" aria-hidden="true"><i class="estrellas"></i><i class="sol"></i><i class="luna"></i></div>
   <main class="wrap" id="view"></main>
   <nav class="tabs" aria-label="Secciones">
     ${[['hoy', 'Hoy', 'hoy'], ['agenda', 'Agenda', 'agenda'], ['tareas', 'Tareas', 'tareas'], ['gastos', 'Gastos', 'gastos'], ['mas', 'Más', 'menu']].map(([t, n, i]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[i]}<span>${n}</span></button>`).join('')}
@@ -110,13 +111,66 @@ root.innerHTML = `
 const view = document.getElementById('view');
 const sheet = document.getElementById('sheet');
 
+/* ---------- Cielo según la hora (tema Vida, apariencia "Hora") ----------
+   Como una app del clima: el fondo es el cielo de este momento en Córdoba. Amanece, el sol cruza
+   el cielo, se esconde al atardecer y de noche hay luna y estrellas. De día la app va en claro; de noche, en oscuro. */
+function solDelDia(d) {
+  const rad = Math.PI / 180, lat = -31.42, lon = -64.18, tz = -3;
+  const N = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5);
+  const g = 2 * Math.PI / 365 * (N - 1);
+  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const dec = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(dec)) - Math.tan(lat * rad) * Math.tan(dec)) / rad;
+  return { sale: 720 - 4 * (lon + ha) - eq + tz * 60, pone: 720 - 4 * (lon - ha) - eq + tz * 60 }; // minutos desde medianoche, hora local
+}
+// Paradas del cielo: s = 0 sale el sol, s = 1 se pone. [s, arriba, medio, abajo]
+const CIELO = [
+  [-0.30, '#0B1430', '#16204A', '#2A2A5C'],
+  [-0.10, '#1E2D63', '#4A4F8F', '#C77E8E'],
+  [0.00, '#A4B8EC', '#D2C6EC', '#FFD2B0'],
+  [0.08, '#8CC2F6', '#BFDDF9', '#FFEBD2'],
+  [0.25, '#76BAF7', '#AEDAFB', '#EEF7FF'],
+  [0.75, '#76BAF7', '#AEDAFB', '#EEF7FF'],
+  [0.90, '#86B6EE', '#BCD5F2', '#FFE0B5'],
+  [1.00, '#9AA6DE', '#F0B4A2', '#FFB27A'],
+  [1.08, '#2C3474', '#7A4E86', '#D0706A'],
+  [1.30, '#0B1430', '#16204A', '#2A2A5C'],
+];
+const mezclar = (a, b, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+function cielo() {
+  const el = document.documentElement;
+  if ((S.settings.palette || 'vida') !== 'vida') { el.removeAttribute('data-cielo'); return null; }
+  const now = window.CIELO_HORA ? new Date(window.CIELO_HORA) : new Date(); // CIELO_HORA: para probar otra hora
+  const { sale, pone } = solDelDia(now);
+  const m = now.getHours() * 60 + now.getMinutes();
+  let s = (m - sale) / (pone - sale);
+  if (s > 1.3) s = 1.3; if (s < -0.3) s = -0.3;
+  let i = 0; while (i < CIELO.length - 2 && s > CIELO[i + 1][0]) i++;
+  const [a, b] = [CIELO[i], CIELO[i + 1]]; const k = Math.min(1, Math.max(0, (s - a[0]) / (b[0] - a[0])));
+  const col = [1, 2, 3].map((j) => mezclar(a[j], b[j], k));
+  const dia = s >= -0.03 && s <= 1.03;
+  const t = Math.min(1, Math.max(0, s));
+  const v = {
+    '--sky-1': col[0], '--sky-2': col[1], '--sky-3': col[2],
+    '--sol-x': (10 + t * 80).toFixed(1) + 'vw', '--sol-y': (26 - Math.sin(Math.PI * t) * 21).toFixed(1) + 'vh',
+    '--sol-o': dia ? 1 : 0, '--sol-tarde': Math.max(0, Math.abs(s - 0.5) * 2 - 0.55).toFixed(2), // 0 al mediodía, ~0.45 al salir/ponerse
+    '--noche': Math.min(1, Math.max(0, s < 0 ? -s / 0.15 : (s - 1) / 0.15)).toFixed(2),
+  };
+  Object.entries(v).forEach(([n, x]) => el.style.setProperty(n, x));
+  el.dataset.cielo = dia ? 'dia' : 'noche';
+  const mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.content = col[0];
+  return dia;
+}
+
 function applyTheme() {
   const t = S.settings.theme;
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-  else document.documentElement.removeAttribute('data-theme');
   const p = S.settings.palette || 'vida'; // Vida es el tema por defecto
   if (p !== 'cognac') document.documentElement.dataset.palette = p;
   else document.documentElement.removeAttribute('data-palette');
+  const dia = cielo();
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  else if (dia !== null) document.documentElement.dataset.theme = dia ? 'light' : 'dark'; // Vida en "Hora": claro de día, oscuro de noche
+  else document.documentElement.removeAttribute('data-theme');
 }
 
 function render() {
@@ -626,7 +680,7 @@ function renderAjustes() {
       <div class="set-row"><span class="lbl"><b>Tu nombre</b></span><input class="input" style="width:150px" data-set="name" value="${esc(S.settings.name)}" maxlength="20" autocomplete="given-name"></div>
       <label class="set-row"><span class="lbl"><b>Agrupar por momento</b><span>Mañana, tarde y noche</span></span><span class="switch"><input type="checkbox" data-set="grouping" ${S.settings.grouping ? 'checked' : ''}><i></i></span></label>
       <div class="set-row stack"><span class="lbl"><b>Tema</b><span>Los colores de la app</span></span><div class="temas">${TEMAS.map(([v, n]) => `<button class="tema" data-act="palette" data-v="${v}" data-p="${v}" aria-pressed="${(S.settings.palette || 'vida') === v}"><i aria-hidden="true"></i><span>${n}</span></button>`).join('')}</div></div>
-      <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
+      <div class="set-row"><span class="lbl"><b>Apariencia</b></span><div class="seg" style="width:210px">${[['auto', (S.settings.palette || 'vida') === 'vida' ? 'Hora' : 'Auto'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, n]) => `<button data-act="theme" data-v="${v}" aria-pressed="${S.settings.theme === v}">${n}</button>`).join('')}</div></div>
     </div>
 
     <div class="section-t">Traer de otra app</div>
@@ -1463,6 +1517,7 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); pushLuego(500); } });
 setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
+setInterval(() => { if (!document.hidden) applyTheme(); }, 60000); // el cielo se mueve aunque estés en Ajustes o con una hoja abierta
 
 if (!DEMO && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline */ });

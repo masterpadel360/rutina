@@ -1039,3 +1039,42 @@ textarea.input.area { min-height: 68px; padding: 12px 14px; resize: vertical; li
 @media (prefers-color-scheme: dark) { :root[data-palette="vida"]:not([data-theme="light"]) :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); } }
 :root[data-theme="dark"][data-palette="vida"] :is(.hero, .summary, .gsum, .tasks-hoy) { background: linear-gradient(135deg, rgba(80, 56, 104, .62), rgba(48, 32, 62, .38) 48%, rgba(70, 46, 86, .5)); }
 :root[data-palette="vida"] .gsave { background: none; }
+
+/* ---------- Cielo según la hora (Vida + apariencia "Hora") ----------
+   El fondo es el cielo de este momento: el sol sale, cruza y se esconde; de noche, luna y estrellas.
+   Los colores y la posición del sol los calcula main.js (cielo()) y los pasa como variables. */
+.cielo { display: none; }
+:root[data-cielo] .cielo {
+  display: block; position: fixed; inset: 0; z-index: -3; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 48%, var(--sky-3) 100%);
+}
+:root[data-cielo] { background: var(--sky-1); }
+.cielo i { position: absolute; display: block; transition: opacity 2s ease, left 2s ease, top 2s ease; }
+.cielo .sol {
+  left: var(--sol-x); top: var(--sol-y); width: 70vmin; height: 70vmin; transform: translate(-50%, -50%); opacity: var(--sol-o);
+  background: radial-gradient(circle,
+    #FFFBE6 0 9%,
+    color-mix(in srgb, #FFE680, #FF8A3D calc(var(--sol-tarde) * 200%)) 13%,
+    color-mix(in srgb, rgba(255, 214, 110, .55), rgba(255, 120, 60, .55) calc(var(--sol-tarde) * 200%)) 22%,
+    rgba(255, 220, 150, .18) 42%, transparent 68%);
+}
+.cielo .luna {
+  right: 16vw; top: 12vh; width: 13vmin; height: 13vmin; border-radius: 50%; opacity: var(--noche);
+  background: radial-gradient(circle at 38% 36%, #FFFDF2, #E9E4D2 70%);
+  box-shadow: 0 0 40px 10px rgba(240, 236, 210, .25), inset -3vmin -1.5vmin 0 rgba(20, 24, 60, .18);
+}
+.cielo .estrellas {
+  inset: 0 0 35% 0; opacity: calc(var(--noche) * .9);
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 28% 8%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 44% 26%, #fff, transparent), radial-gradient(1px 1px at 61% 12%, #fff, transparent),
+    radial-gradient(2px 2px at 76% 30%, #fff, transparent), radial-gradient(1px 1px at 88% 6%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 8% 44%, #fff, transparent), radial-gradient(1px 1px at 35% 52%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 54% 40%, #fff, transparent), radial-gradient(1px 1px at 93% 48%, #fff, transparent),
+    radial-gradient(1px 1px at 20% 62%, #fff, transparent), radial-gradient(1.5px 1.5px at 70% 58%, #fff, transparent);
+}
+/* De día, las luces lila bajan para que mande el celeste; de noche vuelven un poco. */
+:root[data-cielo="dia"][data-palette="vida"] body::after { opacity: .28; }
+:root[data-cielo="noche"][data-palette="vida"] body::after { opacity: .45; }
+:root[data-cielo="dia"][data-palette="vida"] body::before { opacity: .18; }
+@media (prefers-reduced-motion: reduce) { .cielo i { transition: none; } }
