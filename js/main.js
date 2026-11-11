@@ -18,6 +18,44 @@ let S = load();
 if (DEMO && !hasStored()) S = seedDemo(dateKey());
 function hasStored() { try { return !!localStorage.getItem(APP.storageKey); } catch { return false; } }
 
+// ---------- Siri (privado): buzón propio en Cloudflare ----------
+// El atajo «Agendar en Rutina» manda lo dictado al buzón con tu clave; la app lo levanta, lo agenda y lo borra del buzón.
+// Nada pasa por iCloud ni por calendarios públicos.
+const SIRI_URL = 'https://rutina-siri.gabohuppi22.workers.dev';
+const siriOn = () => !DEMO && !!(S.settings.siri && S.settings.siri.token);
+let siriBusy = false;
+let siriEstadoTxt = '';
+async function siriSync({ avisar = false } = {}) {
+  if (!siriOn() || siriBusy) return;
+  siriBusy = true;
+  const t = S.settings.siri.token;
+  try {
+    const r = await fetch(`${SIRI_URL}/buzon?t=${encodeURIComponent(t)}`, { cache: 'no-store' });
+    let j = null;
+    try { j = await r.json(); } catch { /* no es JSON */ }
+    if (!r.ok || !j || !Array.isArray(j.items)) throw new Error(r.status === 401 ? 'La clave de Siri no coincide' : 'No se pudo leer lo de Siri');
+    const vistos = new Set(S.settings.siri.vistos || []);
+    const nuevos = j.items.filter((x) => x && x.id && !vistos.has(x.id));
+    let ult = null;
+    for (const it of nuevos) {
+      const p = parseAgregar(it.texto, today(), nowMinutes());
+      ult = addBlockFrom({ ...p, color: COLORES[2] });
+      vistos.add(it.id);
+    }
+    S.settings.siri.vistos = [...vistos].slice(-200);
+    siriEstadoTxt = 'Conectado';
+    if (nuevos.length) commit();
+    if (j.items.length) fetch(`${SIRI_URL}/buzon/ok`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t, ids: j.items.map((x) => x.id) }) }).catch(() => {});
+    if (nuevos.length) {
+      if (!document.body.classList.contains('open') && !typing()) render();
+      toast(nuevos.length === 1 ? `Siri agendó: ${ult.title} · ${cuandoTxt(ult.date)} ${ult.start}` : `Siri agendó ${nuevos.length} cosas`);
+    } else if (avisar) toast('Conectado con Siri. Por ahora no hay nada nuevo.');
+  } catch (err) {
+    siriEstadoTxt = err && err.name === 'TypeError' ? 'Sin conexión' : (err && err.message) || 'Error';
+    if (avisar) toast(siriEstadoTxt);
+  } finally { siriBusy = false; }
+}
+
 // ---------- Calendario del iPhone (solo lectura, vía el worker) ----------
 // Copia aparte de los datos (no va en la copia de seguridad): { at, eventos, error, errorAt }
 const CAL_KEY = 'rutina.calendario';
@@ -642,15 +680,19 @@ function renderAjustes() {
     </div>
     ${clasesOn() ? `<button class="btn block" style="margin-top:8px" data-act="editClass">${I.mas} Agregar horario de clases</button>` : ''}
 
-    <div class="section-t">Calendario del iPhone</div>
+    <div class="section-t">Siri</div>
     <div class="set-list">
-      <div class="set-row stack"><label class="lbl" for="calUrl"><b>Dirección del servidor</b><span>La que te pasa el asistente (termina en workers.dev)</span></label>
-        <input class="input" id="calUrl" data-set="cal.url" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://rutina-calendario….workers.dev" value="${esc(S.settings.cal.url)}" ${DEMO ? 'disabled' : ''}></div>
-      <div class="set-row stack"><label class="lbl" for="calTok"><b>Clave</b><span>La misma que tiene el servidor</span></label>
-        <input class="input" id="calTok" data-set="cal.token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.settings.cal.token)}" ${DEMO ? 'disabled' : ''}></div>
-      <div class="set-row"><span class="lbl"><b>Estado</b><span>${calEstado()}</span></span><button class="btn sm" data-act="calTest" ${calOn() ? '' : 'disabled'}>Probar conexión</button></div>
+      <div class="set-row stack"><label class="lbl" for="siriTok"><b>Clave de Siri</b><span>La que te pasó el asistente. Es privada: no la compartas.</span></label>
+        <input class="input" id="siriTok" data-set="siri.token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.settings.siri.token)}" ${DEMO ? 'disabled' : ''}></div>
+      <div class="set-row"><span class="lbl"><b>Estado</b><span>${siriOn() ? (siriEstadoTxt || 'Clave cargada') : 'Sin conectar'}</span></span><button class="btn sm" data-act="siriTest" ${siriOn() ? '' : 'disabled'}>Probar</button></div>
     </div>
-    <p class="help">Lo que le pidas a Siri (“agendá gym mañana a las 9”) va al calendario “Rutina” del iPhone y aparece en tu Agenda, rayado. Acá solo se ve: para cambiarlo, usá la app Calendario.</p>
+    <p class="help">Decí «Oye Siri, agendar en Rutina» y dictá, por ejemplo, «dentista mañana a las 15». Al abrir la app aparece en tu Agenda. Es privado: va directo a tu servidor con tu clave.</p>
+    ${S.settings.cal.url ? `<div class="section-t">Calendario del iPhone</div>
+    <div class="set-list">
+      <div class="set-row stack"><label class="lbl" for="calUrl"><b>Dirección del servidor</b><span>Vaciala para desconectar el calendario</span></label>
+        <input class="input" id="calUrl" data-set="cal.url" type="url" inputmode="url" autocapitalize="off" spellcheck="false" value="${esc(S.settings.cal.url)}" ${DEMO ? 'disabled' : ''}></div>
+      <div class="set-row"><span class="lbl"><b>Estado</b><span>${calEstado()}</span></span><button class="btn sm" data-act="calTest" ${calOn() ? '' : 'disabled'}>Probar conexión</button></div>
+    </div>` : ''}
 
     <div class="section-t">Avisos</div>
     <div class="set-list">
@@ -1407,6 +1449,7 @@ const actions = {
   resetDemo: () => { S = seedDemo(today()); commit(); ui.tab = 'hoy'; render(); toast('Demo reiniciada'); },
   calEvent: (el) => calEventSheet(el.dataset.id),
   calTest: () => { toast('Probando…'); calSync({ avisar: true, forzar: true }); },
+  siriTest: () => { toast('Probando…'); siriSync({ avisar: true }).then(() => { if (ui.tab === 'ajustes') render(); }); },
   calRetry: () => calSync({ avisar: true, forzar: true }),
 };
 
@@ -1482,6 +1525,12 @@ document.addEventListener('change', async (e) => {
   if (k === 'remind.quiet.to' && e.target.value) r.quiet.to = e.target.value;
   if (k === 'remind.textoManana' || k === 'remind.textoNoche') r[k.slice(7)] = e.target.value.trim().slice(0, 200);
   if (k === 'push.url') S.settings.push.url = e.target.value.trim();
+  if (k === 'siri.token') {
+    S.settings.siri.token = e.target.value.trim(); siriEstadoTxt = '';
+    commit(); render();
+    if (siriOn()) siriSync({ avisar: true }).then(() => { if (ui.tab === 'ajustes') render(); });
+    return;
+  }
   if (k === 'cal.url' || k === 'cal.token') {
     S.settings.cal[k.slice(4)] = e.target.value.trim();
     if (k === 'cal.url' && !S.settings.cal.url) { cal = { at: 0, eventos: [], error: null, errorAt: 0 }; try { localStorage.removeItem(CAL_KEY); } catch { /* */ } }
@@ -1518,7 +1567,7 @@ document.addEventListener('keydown', (e) => {
     else if (e.key === 'Backspace') { teclaMonto('x'); e.preventDefault(); }
   }
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); pushLuego(500); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (!document.body.classList.contains('open') && !typing()) render(); remindTick(); calSync(); siriSync(); pushLuego(500); } });
 setInterval(() => { remindTick(); if (ui.tab !== 'ajustes' && !document.body.classList.contains('open') && !document.hidden && !typing()) { const y = window.scrollY; render(); window.scrollTo(0, y); } }, 60000);
 setInterval(() => { if (!document.hidden) calSync({ forzar: true }); }, 10 * 60000);
 setInterval(() => { if (!document.hidden) applyTheme(); }, 60000); // el cielo se mueve aunque estés en Ajustes o con una hoja abierta
@@ -1536,6 +1585,8 @@ if (pedido) ui.tab = 'agenda';
 render();
 remindTick();
 calSync({ forzar: true });
+siriSync();
+setInterval(() => { if (!document.hidden) siriSync(); }, 60000); // con la app abierta, lo dictado a Siri aparece al minuto
 pushLuego(1500);
 // Tocar un aviso abre la app en Hoy.
 if (!DEMO && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.ir === 'hoy') { closeSheet(); ui.tab = 'hoy'; window.scrollTo({ top: 0 }); render(); } });

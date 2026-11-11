@@ -60,6 +60,7 @@ const settingsBase = () => ({
   remind: { on: false, morning: '08:00', evening: '21:30', habits: true, tone: 'motivador', textoManana: '', textoNoche: '', quiet: { on: false, from: '23:00', to: '07:00' } },
   classesOn: false, classesReviewed: false, onboarded: false,
   cal: { url: '', token: '' },
+  siri: { token: '', vistos: [] },
   push: { url: '', on: false, id: '', clave: '' },
   taskLists: [], expenseCats: [], budgets: {},
 });
@@ -80,6 +81,7 @@ export function migrate(s) {
     ...base, ...viejo,
     remind: { ...base.remind, ...(viejo.remind || {}), quiet: { ...base.remind.quiet, ...((viejo.remind || {}).quiet || {}) } },
     cal: { ...base.cal, ...(viejo.cal || {}) },
+    siri: { ...base.siri, ...(viejo.siri || {}) },
     push: { ...base.push, ...(viejo.push || {}) },
     taskLists: Array.isArray(viejo.taskLists) ? viejo.taskLists : [],
     expenseCats: Array.isArray(viejo.expenseCats) ? viejo.expenseCats : [],
