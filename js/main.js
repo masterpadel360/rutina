@@ -99,7 +99,7 @@ const PARTES = [['manana', 'Mañana'], ['tarde', 'Tarde'], ['noche', 'Noche'], [
 // ---------- Armado ----------
 const root = document.getElementById('app');
 root.innerHTML = `
-  <div class="cielo" aria-hidden="true"><i class="estrellas"></i><i class="sol"></i><i class="luna"></i></div>
+  <div class="cielo" aria-hidden="true"><i class="estrellas"></i><i class="estrellas e2"></i><i class="rayos"></i><i class="sol"></i><i class="luna"></i><i class="nubes n1"></i><i class="nubes n2"></i><i class="nubes n3"></i><i class="bruma"></i><svg class="sierras" viewBox="0 0 400 120" preserveAspectRatio="none"><path class="lejos" d="M0 70 L30 58 L62 64 L95 44 L128 56 L160 40 L196 52 L232 34 L268 50 L300 42 L338 56 L370 46 L400 54 L400 120 L0 120Z"/><path class="cerca" d="M0 92 L40 80 L78 88 L118 72 L150 84 L188 74 L226 86 L262 70 L300 82 L338 76 L372 88 L400 80 L400 120 L0 120Z"/></svg></div>
   <main class="wrap" id="view"></main>
   <nav class="tabs" aria-label="Secciones">
     ${[['hoy', 'Hoy', 'hoy'], ['agenda', 'Agenda', 'agenda'], ['tareas', 'Tareas', 'tareas'], ['gastos', 'Gastos', 'gastos'], ['mas', 'Más', 'menu']].map(([t, n, i]) => `<button class="tab" data-act="tab" data-tab="${t}">${I[i]}<span>${n}</span></button>`).join('')}
@@ -123,18 +123,18 @@ function solDelDia(d) {
   const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(dec)) - Math.tan(lat * rad) * Math.tan(dec)) / rad;
   return { sale: 720 - 4 * (lon + ha) - eq + tz * 60, pone: 720 - 4 * (lon - ha) - eq + tz * 60 }; // minutos desde medianoche, hora local
 }
-// Paradas del cielo: s = 0 sale el sol, s = 1 se pone. [s, arriba, medio, abajo]
+// Paradas del cielo: s = 0 sale el sol, s = 1 se pone. [s, arriba, medio, abajo, nubes, sierras]
 const CIELO = [
-  [-0.30, '#0B1430', '#16204A', '#2A2A5C'],
-  [-0.10, '#1E2D63', '#4A4F8F', '#C77E8E'],
-  [0.00, '#A4B8EC', '#D2C6EC', '#FFD2B0'],
-  [0.08, '#8CC2F6', '#BFDDF9', '#FFEBD2'],
-  [0.25, '#76BAF7', '#AEDAFB', '#EEF7FF'],
-  [0.75, '#76BAF7', '#AEDAFB', '#EEF7FF'],
-  [0.90, '#86B6EE', '#BCD5F2', '#FFE0B5'],
-  [1.00, '#9AA6DE', '#F0B4A2', '#FFB27A'],
-  [1.08, '#2C3474', '#7A4E86', '#D0706A'],
-  [1.30, '#0B1430', '#16204A', '#2A2A5C'],
+  [-0.30, '#0B1430', '#16204A', '#2A2A5C', '#2B3260', '#0A0F24'],
+  [-0.10, '#1E2D63', '#4A4F8F', '#C77E8E', '#9C7A9E', '#2A2445'],
+  [0.00, '#A4B8EC', '#D2C6EC', '#FFD2B0', '#FFE2D2', '#7C7FA8'],
+  [0.08, '#8CC2F6', '#BFDDF9', '#FFEBD2', '#FFF4EA', '#8597BC'],
+  [0.25, '#76BAF7', '#AEDAFB', '#EEF7FF', '#FFFFFF', '#8EA6C8'],
+  [0.75, '#76BAF7', '#AEDAFB', '#EEF7FF', '#FFFFFF', '#8EA6C8'],
+  [0.90, '#86B6EE', '#BCD5F2', '#FFE0B5', '#FFEBD6', '#8A93B8'],
+  [1.00, '#9AA6DE', '#F0B4A2', '#FFB27A', '#FFC9A6', '#6E5F8C'],
+  [1.08, '#2C3474', '#7A4E86', '#D0706A', '#B07A92', '#2C2448'],
+  [1.30, '#0B1430', '#16204A', '#2A2A5C', '#2B3260', '#0A0F24'],
 ];
 const mezclar = (a, b, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
 function cielo() {
@@ -147,11 +147,11 @@ function cielo() {
   if (s > 1.3) s = 1.3; if (s < -0.3) s = -0.3;
   let i = 0; while (i < CIELO.length - 2 && s > CIELO[i + 1][0]) i++;
   const [a, b] = [CIELO[i], CIELO[i + 1]]; const k = Math.min(1, Math.max(0, (s - a[0]) / (b[0] - a[0])));
-  const col = [1, 2, 3].map((j) => mezclar(a[j], b[j], k));
+  const col = [1, 2, 3, 4, 5].map((j) => mezclar(a[j], b[j], k));
   const dia = s >= -0.03 && s <= 1.03;
   const t = Math.min(1, Math.max(0, s));
   const v = {
-    '--sky-1': col[0], '--sky-2': col[1], '--sky-3': col[2],
+    '--sky-1': col[0], '--sky-2': col[1], '--sky-3': col[2], '--nube': col[3], '--sierra': col[4],
     '--sol-x': (10 + t * 80).toFixed(1) + 'vw', '--sol-y': (26 - Math.sin(Math.PI * t) * 21).toFixed(1) + 'vh',
     '--sol-o': dia ? 1 : 0, '--sol-tarde': Math.max(0, Math.abs(s - 0.5) * 2 - 0.55).toFixed(2), // 0 al mediodía, ~0.45 al salir/ponerse
     '--noche': Math.min(1, Math.max(0, s < 0 ? -s / 0.15 : (s - 1) / 0.15)).toFixed(2),

@@ -1078,3 +1078,45 @@ textarea.input.area { min-height: 68px; padding: 12px 14px; resize: vertical; li
 :root[data-cielo="noche"][data-palette="vida"] body::after { opacity: .45; }
 :root[data-cielo="dia"][data-palette="vida"] body::before { opacity: .18; }
 @media (prefers-reduced-motion: reduce) { .cielo i { transition: none; } }
+
+/* ---------- Cielo: más real (nubes, rayos, bruma y sierras de Córdoba) ---------- */
+.cielo .sierras, .cielo .bruma, .cielo .nubes, .cielo .rayos { display: none; }
+:root[data-cielo] .cielo .sierras { display: block; position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 22vh; }
+.cielo .sierras .lejos { fill: color-mix(in srgb, var(--sierra) 70%, var(--sky-3)); }
+.cielo .sierras .cerca { fill: var(--sierra); }
+:root[data-cielo] .cielo .bruma {
+  display: block; left: 0; right: 0; bottom: 8vh; height: 34vh;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sky-3) 70%, transparent) 70%, transparent);
+}
+/* Nubes: manchas suaves que cruzan muy lento; toman el color del momento (blancas, rosadas, grises de noche) */
+:root[data-cielo] .cielo .nubes {
+  display: block; top: 0; left: -40vw; width: 180vw; height: 60vh; opacity: 1;
+  background:
+    radial-gradient(22vmax 7vmax at 12% 22%, var(--nube), transparent 70%),
+    radial-gradient(14vmax 5vmax at 18% 19%, var(--nube), transparent 70%),
+    radial-gradient(26vmax 8vmax at 48% 40%, var(--nube), transparent 72%),
+    radial-gradient(15vmax 5vmax at 55% 36%, var(--nube), transparent 70%),
+    radial-gradient(20vmax 6vmax at 82% 16%, var(--nube), transparent 70%);
+  filter: blur(3px); animation: nubes 160s linear infinite alternate;
+}
+:root[data-cielo] .cielo .nubes.n2 { top: 18vh; opacity: .55; transform: scale(1.3); animation-duration: 220s; animation-direction: alternate-reverse; filter: blur(10px); }
+:root[data-cielo] .cielo .nubes.n3 { top: 36vh; opacity: .4; animation-duration: 300s; filter: blur(14px); }
+:root[data-cielo="noche"] .cielo .nubes { opacity: .35; }
+@keyframes nubes { from { translate: -8vw 0; } to { translate: 14vw 0; } }
+/* Sol: halo, núcleo brillante y rayos que giran despacio */
+:root[data-cielo] .cielo .rayos {
+  display: block; left: var(--sol-x); top: var(--sol-y); width: 120vmin; height: 120vmin; translate: -50% -50%; opacity: calc(var(--sol-o) * .5);
+  background: repeating-conic-gradient(from 0deg, rgba(255, 246, 210, .22) 0 4deg, transparent 4deg 14deg);
+  -webkit-mask: radial-gradient(circle, #000 8%, transparent 62%); mask: radial-gradient(circle, #000 8%, transparent 62%);
+  animation: rayos 90s linear infinite;
+}
+@keyframes rayos { to { rotate: 360deg; } }
+.cielo .sol { filter: saturate(1.15); }
+.cielo .sol::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9vmin; height: 9vmin; translate: -50% -50%; border-radius: 50%; background: #FFFDF4; box-shadow: 0 0 30px 12px rgba(255, 244, 200, .9), 0 0 90px 40px rgba(255, 210, 140, .45); }
+/* Estrellas que titilan */
+.cielo .estrellas.e2 { inset: 0 0 45% 0; rotate: 180deg; scale: -1 1; animation: titilar 3.5s ease-in-out infinite alternate; }
+.cielo .estrellas:not(.e2) { animation: titilar 5s ease-in-out infinite alternate-reverse; }
+@keyframes titilar { from { filter: brightness(.6); } to { filter: brightness(1.3); } }
+@media (prefers-reduced-motion: reduce) { .cielo .nubes, .cielo .rayos, .cielo .estrellas { animation: none !important; } }
+/* Con cielo, las tarjetas dejan ver un poco más el cielo de atrás */
+:root[data-cielo="dia"][data-palette="vida"] { --glass-card: rgba(255, 255, 255, .62); }
